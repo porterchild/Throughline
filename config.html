@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Throughline Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    .setting-group {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: monospace;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .help-text a {
+      color: #4285f4;
+      text-decoration: none;
+    }
+
+    .help-text a:hover {
+      text-decoration: underline;
+    }
+
+    .save-btn {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .save-btn:hover {
+      background: #357ae8;
+    }
+
+    .status {
+      display: none;
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .status.success {
+      display: block;
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status.error {
+      display: block;
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #4285f4;
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .info-box strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Throughline Settings</h1>
+  <p class="subtitle">Configure API keys for research thread analysis</p>
+
+  <div class="info-box">
+    <strong>About API Requirements:</strong>
+    Throughline uses LLMs to analyze research papers and trace conceptual lineages. 
+    This requires an OpenRouter API key for language model access. 
+    Semantic Scholar is used for paper discovery (no key required, but limited to 1 request/second).
+  </div>
+
+  <div class="setting-group">
+    <label for="openrouter-key">OpenRouter API Key</label>
+    <input 
+      type="password" 
+      id="openrouter-key" 
+      placeholder="sk-or-v1-..." 
+      autocomplete="off"
+    />
+    <div class="help-text">
+      Get your API key from <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>
+      <br>Recommended model: x-ai/grok-4.1-fast (set automatically)
+      <br>Cost: ~$0.01-0.05 per seed paper analyzed
+    </div>
+  </div>
+
+  <button class="save-btn" id="save-btn">Save Settings</button>
+
+  <div id="status" class="status"></div>
+
+  <script>
+    // Load saved settings
+    chrome.storage.local.get(['openRouterKey'], (result) => {
+      if (result.openRouterKey) {
+        document.getElementById('openrouter-key').value = result.openRouterKey;
+      }
+    });
+
+    // Save settings
+    document.getElementById('save-btn').addEventListener('click', () => {
+      const openRouterKey = document.getElementById('openrouter-key').value.trim();
+      
+      if (!openRouterKey) {
+        showStatus('Please enter an OpenRouter API key', 'error');
+        return;
+      }
+
+      if (!openRouterKey.startsWith('sk-or-')) {
+        showStatus('Invalid OpenRouter API key format (should start with sk-or-)', 'error');
+        return;
+      }
+
+      chrome.storage.local.set({
+        openRouterKey: openRouterKey
+      }, () => {
+        showStatus('Settings saved successfully!', 'success');
+      });
+    });
+
+    function showStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = 'status ' + type;
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          status.className = 'status';
+        }, 3000);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -2,23 +2,20 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <title>Throughline</title>
   <style>
-    * {
+    body {
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      width: 500px;
-      min-height: 400px;
-      max-height: 600px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f9fafb;
+      font-size: 14px;
+      width: 450px;
+      max-height: 600px;
+      color: #333;
     }
 
     .header {
-      background: #6366f1;
+      background: #4285f4;
       color: white;
       padding: 16px 20px;
       display: flex;
@@ -27,254 +24,183 @@
     }
 
     .header h1 {
+      margin: 0;
       font-size: 18px;
       font-weight: 600;
     }
 
-    .header button {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
+    .clear-btn {
+      background: rgba(255,255,255,0.2);
       color: white;
+      border: none;
       padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
-      font-weight: 500;
     }
 
-    .header button:hover {
-      background: rgba(255, 255, 255, 0.3);
+    .clear-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .papers {
+      max-height: 450px;
+      overflow-y: auto;
+      padding: 12px;
     }
 
     .empty-state {
-      padding: 60px 20px;
       text-align: center;
-      color: #6b7280;
-    }
-
-    .empty-state-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
+      padding: 60px 20px;
+      color: #999;
     }
 
     .empty-state h2 {
+      margin: 0 0 10px 0;
       font-size: 16px;
-      margin-bottom: 8px;
-      color: #374151;
+      color: #666;
     }
 
     .empty-state p {
-      font-size: 14px;
+      margin: 0;
+      font-size: 13px;
       line-height: 1.5;
-    }
-
-    .papers-list {
-      padding: 12px;
-      overflow-y: auto;
-      max-height: 520px;
     }
 
     .paper-card {
       background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
-      position: relative;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 10px;
+      transition: box-shadow 0.2s;
     }
 
     .paper-card:hover {
-      border-color: #6366f1;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .paper-nickname {
-      font-size: 12px;
-      color: #6366f1;
-      font-weight: 600;
-      margin-bottom: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
 
     .paper-title {
-      font-size: 14px;
       font-weight: 600;
-      color: #111827;
-      margin-bottom: 8px;
+      color: #1a0dab;
+      margin-bottom: 6px;
+      font-size: 14px;
       line-height: 1.4;
     }
 
-    .paper-journal {
+    .paper-authors {
       font-size: 12px;
-      color: #6b7280;
+      color: #006621;
+      margin-bottom: 4px;
+    }
+
+    .paper-year {
+      font-size: 12px;
+      color: #666;
       margin-bottom: 8px;
     }
 
     .paper-abstract {
       font-size: 12px;
-      color: #4b5563;
+      color: #545454;
       line-height: 1.5;
+      margin-bottom: 10px;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    .paper-meta {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid #f3f4f6;
+    .paper-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    .paper-date {
       font-size: 11px;
-      color: #9ca3af;
+      color: #999;
     }
 
     .remove-btn {
-      background: #ef4444;
+      background: #f44336;
       color: white;
       border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 3px;
       cursor: pointer;
-      font-weight: 500;
+      font-size: 11px;
     }
 
     .remove-btn:hover {
-      background: #dc2626;
+      background: #d32f2f;
     }
 
     .footer {
-      padding: 12px;
-      border-top: 2px solid #e5e7eb;
-      background: white;
+      background: #f9f9f9;
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
     }
 
     .trace-btn {
-      width: 100%;
-      background: #6366f1;
+      background: #4285f4;
       color: white;
       border: none;
-      padding: 12px;
+      padding: 10px 24px;
       border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      flex: 1;
+      max-width: 250px;
     }
 
     .trace-btn:hover {
-      background: #4f46e5;
+      background: #357ae8;
     }
 
     .trace-btn:disabled {
-      background: #9ca3af;
+      background: #ccc;
       cursor: not-allowed;
     }
 
-    /* Trace screen styles */
-    .screen {
-      display: none;
+    ::-webkit-scrollbar {
+      width: 8px;
     }
 
-    .screen.active {
-      display: block;
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
     }
 
-    .back-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 16px 20px;
-      background: white;
-      border-bottom: 1px solid #e5e7eb;
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
     }
 
-    .back-btn {
-      background: none;
-      border: none;
-      color: #6366f1;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-weight: 500;
-    }
-
-    .back-btn:hover {
-      color: #4f46e5;
-    }
-
-    .trace-content {
-      padding: 20px;
-    }
-
-    .trace-paper {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      padding: 12px 16px;
-      margin-bottom: 8px;
-    }
-
-    .trace-paper-title {
-      font-size: 13px;
-      color: #111827;
-      font-weight: 500;
-    }
-
-    .trace-paper-author {
-      font-size: 11px;
-      color: #6b7280;
-      margin-top: 4px;
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
     }
   </style>
 </head>
 <body>
-  <!-- Main screen -->
-  <div id="main-screen" class="screen active">
-    <div class="header">
-      <h1>📚 Throughline</h1>
-      <button id="clear-all">Clear All</button>
-    </div>
+  <div class="header">
+    <h1>📚 Throughline Collection</h1>
+    <button class="clear-btn" id="clear-all">Clear All</button>
+  </div>
 
-    <div id="empty-state" class="empty-state">
-      <div class="empty-state-icon">📝</div>
+  <div class="papers" id="papers-container">
+    <div class="empty-state">
       <h2>No papers yet</h2>
-      <p>Click "Add to Throughline" on papers in ResearchRabbit to start building your collection.</p>
-    </div>
-
-    <div id="papers-list" class="papers-list" style="display: none;"></div>
-
-    <div id="footer" class="footer" style="display: none;">
-      <button id="trace-btn" class="trace-btn">
-        <span>🔍</span>
-        <span>Trace throughlines</span>
-      </button>
+      <p>
+        Visit <strong>app.researchrabbit.ai</strong><br>
+        Switch to list view and click<br>
+        "➕ Add to Throughline" on papers
+      </p>
     </div>
   </div>
 
-  <!-- Trace screen -->
-  <div id="trace-screen" class="screen">
-    <div class="back-header">
-      <button id="back-btn" class="back-btn">
-        <span>←</span>
-        <span>Back</span>
-      </button>
-      <h2 style="font-size: 16px; font-weight: 600; color: #111827;">Trace Throughlines</h2>
-    </div>
-    
-    <div class="trace-content" id="trace-content">
-      <!-- Papers will be listed here -->
-    </div>
+  <div class="footer" id="footer" style="display: none;">
+    <button class="trace-btn" id="trace-btn">🔍 Trace Throughlines</button>
   </div>
 
   <script src="popup.js"></script>

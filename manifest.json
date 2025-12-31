@@ -1,17 +1,37 @@
 {
   "manifest_version": 3,
   "name": "Throughline",
-  "version": "0.1.0",
-  "description": "Trace conceptual throughlines across academic papers",
-  "permissions": ["storage"],
-  "action": {
-    "default_popup": "popup.html"
+  "version": "1.0",
+  "description": "Trace research lineages through time using LLMs",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://app.researchrabbit.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["https://app.researchrabbit.ai/*"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "css": ["content.css"]
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "options_page": "config.html",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
 }
