@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Throughline",
+  "version": "0.1.0",
+  "description": "Trace conceptual throughlines across academic papers",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.researchrabbit.ai/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

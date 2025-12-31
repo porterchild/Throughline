@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 500px;
+      min-height: 400px;
+      max-height: 600px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+    }
+
+    .header {
+      background: #6366f1;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .header button {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .header button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h2 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .papers-list {
+      padding: 12px;
+      overflow-y: auto;
+      max-height: 520px;
+    }
+
+    .paper-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .paper-card:hover {
+      border-color: #6366f1;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .paper-nickname {
+      font-size: 12px;
+      color: #6366f1;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .paper-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .paper-journal {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .paper-abstract {
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .paper-meta {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f3f4f6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .paper-date {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .remove-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .remove-btn:hover {
+      background: #dc2626;
+    }
+
+    .footer {
+      padding: 12px;
+      border-top: 2px solid #e5e7eb;
+      background: white;
+    }
+
+    .trace-btn {
+      width: 100%;
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .trace-btn:hover {
+      background: #4f46e5;
+    }
+
+    .trace-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* Trace screen styles */
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .back-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: #6366f1;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
+
+    .back-btn:hover {
+      color: #4f46e5;
+    }
+
+    .trace-content {
+      padding: 20px;
+    }
+
+    .trace-paper {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+    }
+
+    .trace-paper-title {
+      font-size: 13px;
+      color: #111827;
+      font-weight: 500;
+    }
+
+    .trace-paper-author {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main screen -->
+  <div id="main-screen" class="screen active">
+    <div class="header">
+      <h1>📚 Throughline</h1>
+      <button id="clear-all">Clear All</button>
+    </div>
+
+    <div id="empty-state" class="empty-state">
+      <div class="empty-state-icon">📝</div>
+      <h2>No papers yet</h2>
+      <p>Click "Add to Throughline" on papers in ResearchRabbit to start building your collection.</p>
+    </div>
+
+    <div id="papers-list" class="papers-list" style="display: none;"></div>
+
+    <div id="footer" class="footer" style="display: none;">
+      <button id="trace-btn" class="trace-btn">
+        <span>🔍</span>
+        <span>Trace throughlines</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Trace screen -->
+  <div id="trace-screen" class="screen">
+    <div class="back-header">
+      <button id="back-btn" class="back-btn">
+        <span>←</span>
+        <span>Back</span>
+      </button>
+      <h2 style="font-size: 16px; font-weight: 600; color: #111827;">Trace Throughlines</h2>
+    </div>
+    
+    <div class="trace-content" id="trace-content">
+      <!-- Papers will be listed here -->
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
