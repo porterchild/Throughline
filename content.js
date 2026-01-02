@@ -112,8 +112,18 @@ function addButtonsToPapers() {
         // Add paper if not already in throughline (check by title)
         const exists = throughline.some(p => p.title === paperData.title);
         if (!exists) {
+          // Extract year from nickname
+          const yearMatch = paperData.nickname.match(/\b(19|20)\d{2}\b/);
+          const year = yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear();
+          
+          // Extract authors
+          const authors = paperData.nickname.split(',')[0].trim();
+          
           throughline.push({
             ...paperData,
+            year: year,
+            authors: [{ name: authors }],
+            paperId: generatePaperId(paperData.title),
             addedAt: new Date().toISOString()
           });
           
@@ -164,3 +174,12 @@ observer.observe(document.body, {
 
 // Also re-run periodically as a fallback
 setInterval(addButtonsToPapers, 2000);
+
+function generatePaperId(title) {
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = ((hash << 5) - hash) + title.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+}

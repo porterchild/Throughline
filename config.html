@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Throughline Settings</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .help {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    .help a {
+      color: #6366f1;
+    }
+
+    button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background: #4f46e5;
+    }
+
+    .status {
+      display: none;
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .status.success {
+      display: block;
+      background: #d4edda;
+      color: #155724;
+    }
+  </style>
+</head>
+<body>
+  <h1>Throughline Settings</h1>
+
+  <label for="api-key">OpenRouter API Key</label>
+  <input type="password" id="api-key" placeholder="sk-or-v1-...">
+  <div class="help">
+    Get your key at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>
+    · Model: x-ai/grok-4.1-fast
+  </div>
+
+  <button id="save">Save</button>
+
+  <div id="status" class="status"></div>
+
+  <div style="margin-top: 20px; padding: 12px; background: #fef3c7; border-radius: 4px; font-size: 12px; color: #92400e;">
+    <strong>After saving:</strong> Go to chrome://extensions and click the reload icon ↻ on Throughline
+  </div>
+
+  <script>
+    // Load existing key
+    chrome.storage.local.get(['openRouterKey'], (result) => {
+      if (result.openRouterKey) {
+        document.getElementById('api-key').value = result.openRouterKey;
+        console.log('Loaded existing API key');
+      }
+    });
+
+    document.getElementById('save').addEventListener('click', () => {
+      const key = document.getElementById('api-key').value.trim();
+      
+      if (!key || !key.startsWith('sk-or-')) {
+        alert('Invalid API key format (should start with sk-or-)');
+        return;
+      }
+
+      // Show we're saving
+      const status = document.getElementById('status');
+      status.textContent = 'Saving...';
+      status.className = 'status success';
+
+      chrome.storage.local.set({ openRouterKey: key }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('ERROR saving:', chrome.runtime.lastError);
+          status.textContent = '✗ Error: ' + chrome.runtime.lastError.message;
+          status.style.background = '#fecaca';
+          return;
+        }
+        
+        console.log('chrome.storage.local.set callback fired');
+        
+        // Verify it was saved
+        chrome.storage.local.get(['openRouterKey'], (result) => {
+          if (chrome.runtime.lastError) {
+            console.error('ERROR getting:', chrome.runtime.lastError);
+            status.textContent = '✗ Error reading: ' + chrome.runtime.lastError.message;
+            return;
+          }
+          
+          console.log('Verification check:');
+          console.log('  Key exists:', !!result.openRouterKey);
+          console.log('  Key length:', result.openRouterKey?.length);
+          console.log('  Match:', result.openRouterKey === key);
+          
+          if (result.openRouterKey === key) {
+            status.textContent = '✓ CONFIRMED SAVED! Key length: ' + result.openRouterKey.length + ' - Now reload extension';
+          } else {
+            status.textContent = '✗ Save failed - retrieved different value';
+          }
+          status.className = 'status success';
+        });
+      });
+    });
+  </script>
+</body>
+</html>

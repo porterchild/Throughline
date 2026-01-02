@@ -1,12 +1,21 @@
 {
   "manifest_version": 3,
   "name": "Throughline",
-  "version": "0.1.0",
-  "description": "Trace conceptual throughlines across academic papers",
+  "version": "1.0",
+  "description": "Trace research lineages through time using LLMs",
   "permissions": ["storage"],
+  "host_permissions": [
+    "https://app.researchrabbit.ai/*",
+    "https://openrouter.ai/*",
+    "https://api.semanticscholar.org/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html"
   },
+  "options_page": "config.html",
   "content_scripts": [
     {
       "matches": ["https://app.researchrabbit.ai/*"],

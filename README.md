@@ -1,46 +1,184 @@
-# Throughline for ResearchRabbit
+# Throughline
 
-A Chrome extension that helps you trace conceptual throughlines across academic papers in ResearchRabbit.
+Trace research lineages through time using LLMs and semantic embeddings. Discover "spiritual successors" and same-lab work that traditional citation networks miss.
 
-## Current Status: Basic Collection MVP
+## What It Does
 
-This version lets you:
-- ✅ Add papers to your Throughline collection
-- ✅ View saved papers in the extension popup
-- ✅ Remove papers individually or clear all
+ResearchRabbit's "related papers" feature misses obvious research lineages when there's no direct citation path. For example, searching from ViNT (2023) might miss NoMaD, LeLaN, and OmniVLA - all obvious successors from the same lab.
 
-**Coming soon:** LLM-powered analysis to find spiritual successors, latest work in the same vein, and conceptual connections.
+Throughline solves this by combining:
+
+- **Dual-strategy search**: Both citations API (direct descendants) + recommendations API (semantic similarity)
+- **SPECTRE v2 embeddings** (Semantic Scholar) for semantic paper discovery
+- **LLM-based ranking** (Grok 4.1 Fast via OpenRouter) with full abstracts, authors, and citation counts
+- **Recursive expansion** from seed papers → current year
+- **Sub-thread spawning** when papers diverge into new research directions
+
+**Analysis runs in background** - close the popup anytime and check back later.
 
 ## Installation
 
-1. Download/clone these files into a folder called `researchrabbit-extension`
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in top right)
-4. Click "Load unpacked"
-5. Select the `researchrabbit-extension` folder
-6. Navigate to ResearchRabbit and switch to **list view**
+1. Clone/download this repo
+2. Chrome → `chrome://extensions/` → Enable "Developer mode"
+3. Click "Load unpacked" → Select the extension folder
+4. Right-click extension icon → Options → Add your OpenRouter API key
+
+Get OpenRouter key: https://openrouter.ai/keys (free tier available)
 
 ## Usage
 
-1. Go to https://app.researchrabbit.ai/ and open a collection
-2. Switch to **list view** (the button with three horizontal lines)
-3. Click "➕ Add to Throughline" on any paper
-4. Click the extension icon in your browser toolbar to view your saved papers
-5. Papers show with title, abstract, and metadata
-6. Click "🔍 Trace throughlines" to see all papers and begin analysis
-7. Remove individual papers or "Clear All"
+### Basic Workflow
 
-## Next Steps
+1. Go to ResearchRabbit → **Switch to list view** (not canvas)
+2. Click "➕ Add to Throughline" on 1-3 seed papers
+3. Click extension icon → "🔍 Trace throughlines"
+4. Click "Run Analysis" (takes 2-5 minutes)
+5. View threads sorted chronologically
 
-Once this works, we'll:
-1. Add LLM API integration (Claude/OpenAI)
-2. Implement "Find spiritual successors" feature
-3. Add "Author's latest in this vein" analysis
-4. Create relationship mapping between papers
+### During Analysis
 
-## Technical Notes
+- **Progress bar** shows current operation
+- **Stop button** (⏹) stops analysis gracefully and saves debug tree
+- Analysis continues in background - safe to close popup
 
-- Uses structural DOM queries instead of CSS class names for resilience
-- Stores papers in Chrome's local storage
-- Monitors DOM changes to detect newly loaded papers
-- No external API calls yet (all data stays local)
+### After Analysis
+
+- Click paper titles to open in Semantic Scholar
+- **Download Debug Tree** to see decision-making process
+- View all discovered threads and papers
+
+## How It Works
+
+### For Each Seed Paper:
+
+1. **Theme Extraction**: LLM identifies 2-3 core research themes
+2. **Thread Creation**: Each theme becomes a separate research thread
+3. **Paper Discovery** (dual strategy):
+   - Fetch papers that cite the seed (direct descendants)
+   - Fetch semantically similar papers via SPECTRE embeddings
+   - Merge and deduplicate (330+ candidates typical)
+4. **Quality Filtering**:
+   - Remove papers 3+ years old with <5 citations
+   - Keep recent papers (≤2 years) regardless of citations
+5. **LLM Ranking**:
+   - Provide full abstracts, authors, citation counts
+   - LLM ranks papers by relevance to thread theme
+   - Helps identify same-lab work and conceptual connections
+6. **Thread Expansion**:
+   - Add top-ranked paper to thread
+   - Check if paper spawns new sub-threads
+   - Recurse until reaching current year
+7. **Sub-thread Detection**:
+   - LLM analyzes each paper for new research directions
+   - Spawns sub-threads for significant divergences
+
+### Example Thread Evolution:
+
+```
+Thread: Development of ViNT as a Transformer-based foundation...
+  ├─ ViNT: A Foundation Model for Visual Navigation (2023)
+  ├─ NoMaD: Goal Masked Diffusion Policies... (2023)
+  │  └─ Sub-thread: Unified diffusion policy for goal-directed navigation...
+  │     ├─ LeLaN: Learning A Language-Conditioned Navigation... (2024)
+  │     └─ OmniVLA: An Omni-Modal Vision-Language-Action... (2025)
+  └─ ...continues to 2026
+```
+
+## Understanding Results
+
+### Thread Display
+
+- **Theme**: LLM-generated description of research direction
+- **Papers**: Chronological list with year, title, authors, citations
+- **Sub-threads**: Indented threads showing research divergence
+- **Links**: Click titles to open in Semantic Scholar
+
+### Quality Indicators
+
+- **Citation count**: Shows paper impact
+- **Author overlap**: Helps identify same-lab work
+- **Year progression**: Shows research evolution over time
+
+### Debug Tree
+
+Download the debug tree to see:
+- Which papers were considered at each step
+- How the LLM ranked candidates
+- Why specific papers were selected
+- All current threads at any point in time
+- Search statistics (citing vs recommended papers)
+
+Example debug tree entry:
+```
+[3] RANK: Ranked 309 papers for theme: Development of ViNT...
+    Top 10 ranked:
+      1. [2023] NoMaD: Goal Masked... (244 cites)
+         Authors: A. Sridhar, Dhruv Shah
+      ...
+```
+
+## Technical Details
+
+### Search Strategy
+
+1. **Citations API**: Papers that cite the seed (direct descendants)
+2. **Recommendations API**: Semantically similar via SPECTRE v2
+3. **Merge**: Deduplicate papers appearing in both
+4. **Filter**: Quality filter removes old low-impact papers
+5. **Rank**: LLM with full context selects most relevant
+
+### Rate Limits
+
+- Semantic Scholar: 1 req/sec (unauthorized API)
+- OpenRouter: Depends on your tier
+- Built-in retry logic for 429 errors
+
+### Limits (Configurable)
+
+- Max 10 threads per analysis
+- Max 20 papers per thread
+- Prompts ~150-500KB for ranking (large context windows)
+
+### Error Handling
+
+- **LLM parse errors**: Automatic self-correction retry
+- **Rate limiting**: Exponential backoff with retry
+- **Malformed responses**: Debug tree captures for analysis
+- **Stop button**: Graceful termination with debug tree save
+
+### Storage
+
+- Uses Chrome local storage
+- Papers stored with: title, authors, abstract, year, citations, paperId
+- Debug tree saved for every analysis
+- All data stored locally (no external sync)
+
+
+## Development
+
+### File Structure
+
+```
+throughline-extension/
+├── manifest.json          # Extension config
+├── background.js          # Core analysis logic (ThroughlineAnalyzer)
+├── content.js            # ResearchRabbit page injection
+├── popup.html/js         # Extension popup UI
+├── config.html           # Options page for API key
+└── README.md            # This file
+```
+
+### Key Classes
+
+- `ThroughlineAnalyzer`: Main analysis engine
+  - `analyze()`: Entry point
+  - `processSeedPaper()`: Extract themes and start threads
+  - `expandThread()`: Recursive thread expansion
+  - `findRelatedPapers()`: Dual-strategy search
+  - `rankPapers()`: LLM ranking with full context
+  - `checkForSubThreads()`: Detect research divergence
+
+### Debug Logging
+
+Set `DEBUG_ENABLED = true` in background.js for verbose console logs.
+

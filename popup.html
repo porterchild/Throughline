@@ -254,7 +254,7 @@
 
     <div id="papers-list" class="papers-list" style="display: none;"></div>
 
-    <div id="footer" class="footer" style="display: none;">
+    <div class="footer" id="footer" style="display: none;">
       <button id="trace-btn" class="trace-btn">
         <span>🔍</span>
         <span>Trace throughlines</span>
@@ -271,11 +271,34 @@
       </button>
       <h2 style="font-size: 16px; font-weight: 600; color: #111827;">Trace Throughlines</h2>
     </div>
-    
-    <div class="trace-content" id="trace-content">
-      <!-- Papers will be listed here -->
+
+    <div id="progress" style="padding: 20px; background: white;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="font-size: 13px; color: #666;" id="progress-text">Starting analysis...</div>
+        <button id="stop-btn" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">⏹ Stop</button>
+      </div>
+      <div style="width: 100%; background: #e5e7eb; height: 8px; border-radius: 4px; margin-bottom: 8px; overflow: hidden;">
+        <div id="progress-bar" style="width: 0%; background: #6366f1; height: 100%; transition: width 0.3s;"></div>
+      </div>
+      <div style="font-size: 11px; color: #999; text-align: center;" id="progress-detail">Initializing...</div>
     </div>
+
+    <div id="results" style="padding: 20px; display: none;"></div>
   </div>
+
+  <!-- Debug Panel -->
+  <div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; border-top: 2px solid #666; display: none;">
+    <div style="padding: 8px; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #666;">
+      <span style="font-weight: bold; color: #4ec9b0;">🐛 Debug Console</span>
+      <button id="clear-debug" style="background: #666; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 10px;">Clear</button>
+    </div>
+    <div id="debug-logs" style="padding: 8px; line-height: 1.4;"></div>
+  </div>
+
+  <!-- Debug Toggle Button -->
+  <button id="debug-toggle" style="position: fixed; bottom: 8px; right: 8px; background: #1e1e1e; color: #4ec9b0; border: 1px solid #666; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; z-index: 1001;">
+    🐛 Debug
+  </button>
 
   <script src="popup.js"></script>
 </body>
