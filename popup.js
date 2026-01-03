@@ -216,6 +216,9 @@ function downloadDebugTree(tree) {
   tree.forEach((node, i) => {
     text += `\n[${i + 1}] ${node.type.toUpperCase()}: ${node.message}\n`;
     if (node.data) {
+      if (node.data.stackDepth !== undefined) {
+        text += `    Stack depth: ${node.data.stackDepth}\n`;
+      }
       if (node.data.yearDistribution) {
         text += `    Year distribution: ${JSON.stringify(node.data.yearDistribution)}\n`;
       }
@@ -228,7 +231,36 @@ function downloadDebugTree(tree) {
       if (node.data.afterYearFilter !== undefined) {
         text += `    Final count (after year filter): ${node.data.afterYearFilter}\n`;
       }
-      if (node.data.allThreads && node.data.allThreads.length > 0) {
+      // Handle new expansion stack format
+      if (node.data.allThreads && node.data.allThreads.expansionStack) {
+        text += `    === EXPANSION STACK (threads being built) ===\n`;
+        node.data.allThreads.expansionStack.forEach((t, idx) => {
+          const indent = '    ' + '  '.repeat(idx);
+          text += `${indent}[${idx}] ${t.theme}\n`;
+          if (t.papers && t.papers.length > 0) {
+            t.papers.forEach((p, pidx) => {
+              text += `${indent}  ${pidx + 1}. ${p}\n`;
+            });
+          }
+          if (t.subThreads > 0) {
+            text += `${indent}  (${t.subThreads} sub-threads)\n`;
+          }
+        });
+        if (node.data.allThreads.completedThreads && node.data.allThreads.completedThreads.length > 0) {
+          text += `    === COMPLETED THREADS ===\n`;
+          node.data.allThreads.completedThreads.forEach((t, idx) => {
+            text += `    Thread ${idx + 1}: ${t.theme}\n`;
+            if (t.papers && t.papers.length > 0) {
+              t.papers.forEach((p, pidx) => {
+                text += `      ${pidx + 1}. ${p}\n`;
+              });
+            }
+          });
+        }
+        text += `    === END THREADS ===\n`;
+      }
+      // Handle legacy format (array of threads)
+      else if (node.data.allThreads && Array.isArray(node.data.allThreads) && node.data.allThreads.length > 0) {
         text += `    === ALL CURRENT THREADS ===\n`;
         node.data.allThreads.forEach((t, idx) => {
           text += `    Thread ${idx + 1}: ${t.theme}\n`;

@@ -224,6 +224,22 @@ class ThroughlineAnalyzer {
     this.maxPapersPerThread = 20;
     this.progressCallback = null;
     this.debugTree = []; // Track exploration decisions
+    this.expansionStack = []; // Track nested thread expansion for debugging
+    this.stopped = false; // Local stop flag for faster checking
+  }
+  
+  async checkStopped() {
+    // Check local flag first (fast)
+    if (this.stopped) return true;
+    
+    // Check storage (slower, but catches user clicks)
+    const stopCheck = await chrome.storage.local.get(['analysisShouldStop']);
+    if (stopCheck.analysisShouldStop) {
+      this.stopped = true;
+      DEBUG_BG.log('Analysis stopped by user');
+      return true;
+    }
+    return false;
   }
   
   addDebugNode(type, message, data = {}) {
@@ -238,6 +254,8 @@ class ThroughlineAnalyzer {
     this.progressCallback = progressCallback;
     this.threads = [];
     this.processedPapers = new Set();
+    this.expansionStack = [];
+    this.stopped = false;  // Reset stop flag
     
     const totalSteps = seedPapers.length * 3; // Rough estimate
     let currentStep = 0;
@@ -245,6 +263,11 @@ class ThroughlineAnalyzer {
     this.updateProgress('Starting analysis...', 'Extracting research themes from seed papers', 0);
 
     for (const seedPaper of seedPapers) {
+      // Check stop at start of each seed paper
+      if (await this.checkStopped()) {
+        throw new Error('Analysis stopped by user');
+      }
+      
       currentStep++;
       await this.processSeedPaper(seedPaper);
       this.updateProgress(
@@ -263,6 +286,11 @@ class ThroughlineAnalyzer {
   }
 
   async processSeedPaper(seedPaper) {
+    // Check stop before processing
+    if (await this.checkStopped()) {
+      throw new Error('Analysis stopped by user');
+    }
+    
     this.updateProgress(
       `Analyzing: ${seedPaper.title.substring(0, 60)}...`,
       'Extracting research themes with LLM',
@@ -270,6 +298,11 @@ class ThroughlineAnalyzer {
     );
 
     const themes = await this.extractThemes(seedPaper);
+    
+    // Check stop after LLM call
+    if (await this.checkStopped()) {
+      throw new Error('Analysis stopped by user');
+    }
 
     for (const theme of themes) {
       const thread = {
@@ -302,107 +335,149 @@ class ThroughlineAnalyzer {
 
   async expandThread(thread, startYear) {
     // Check if user requested stop
-    const stopCheck = await chrome.storage.local.get(['analysisShouldStop']);
-    if (stopCheck.analysisShouldStop) {
-      DEBUG_BG.log('Analysis stopped by user');
+    if (await this.checkStopped()) {
       throw new Error('Analysis stopped by user');
     }
     
-    this.updateProgress(
-      `Expanding: ${thread.theme.substring(0, 50)}...`,
-      `Searching papers from ${startYear} → present`,
-      null
-    );
-
-    let currentYear = startYear;
-    const currentYearActual = new Date().getFullYear();
+    // Track this thread in expansion stack for debugging
+    this.expansionStack.push(thread);
     
-    DEBUG_BG.log('expandThread - starting from year:', currentYear, 'to', currentYearActual);
-    
-    this.addDebugNode('expand', `Expanding thread from ${startYear}: ${thread.theme}`, {
-      spawnYear: thread.spawnYear,
-      spawnPaper: thread.spawnPaper.title
-    });
-
-    while (currentYear < currentYearActual && thread.papers.length < this.maxPapersPerThread) {
-      const lastPaper = thread.papers[thread.papers.length - 1];
-      
-      // Search for papers from current year onwards (not strictly future)
-      const relatedPapers = await this.findRelatedPapers(lastPaper, currentYear);
-      
-      DEBUG_BG.log('expandThread - got', relatedPapers.length, 'related papers');
-
-      if (relatedPapers.length === 0) {
-        // Try next year
-        currentYear++;
-        if (currentYear >= currentYearActual) break;
-        continue;
-      }
-
-      const rankedPapers = await this.rankPapers(relatedPapers, thread.theme, lastPaper);
-      
-      DEBUG_BG.log('expandThread - ranked papers:', rankedPapers.length);
-
+    try {
       this.updateProgress(
-        `Ranking ${relatedPapers.length} papers...`,
-        'Using LLM to rank relevance to thread',
+        `Expanding: ${thread.theme.substring(0, 50)}...`,
+        `Searching papers from ${startYear} → present`,
         null
       );
 
-      for (const paper of rankedPapers.slice(0, 3)) {
-        const paperId = paper.paperId || paper.title;
-        if (this.processedPapers.has(paperId)) {
-          DEBUG_BG.log('Skipping already processed paper:', paper.title);
-          this.addDebugNode('skip', `Already processed: ${paper.title}`, {
-            year: paper.year,
-            reason: 'duplicate'
-          });
+      let currentYear = startYear;
+      const currentYearActual = new Date().getFullYear();
+      
+      DEBUG_BG.log('expandThread - starting from year:', currentYear, 'to', currentYearActual);
+      DEBUG_BG.log('Expansion stack depth:', this.expansionStack.length);
+      
+      this.addDebugNode('expand', `Expanding thread from ${startYear}: ${thread.theme}`, {
+        spawnYear: thread.spawnYear,
+        spawnPaper: thread.spawnPaper.title,
+        stackDepth: this.expansionStack.length
+      });
+
+      while (currentYear < currentYearActual && thread.papers.length < this.maxPapersPerThread) {
+        // Check stop at start of each iteration
+        if (await this.checkStopped()) {
+          throw new Error('Analysis stopped by user');
+        }
+        
+        const lastPaper = thread.papers[thread.papers.length - 1];
+        
+        // Search for papers from current year onwards (not strictly future)
+        const relatedPapers = await this.findRelatedPapers(lastPaper, currentYear);
+        
+        // Check stop after API calls
+        if (await this.checkStopped()) {
+          throw new Error('Analysis stopped by user');
+        }
+        
+        DEBUG_BG.log('expandThread - got', relatedPapers.length, 'related papers');
+
+        if (relatedPapers.length === 0) {
+          // Try next year
+          currentYear++;
+          if (currentYear >= currentYearActual) break;
           continue;
         }
 
-        DEBUG_BG.log('Adding paper to thread:', paper.title, paper.year);
+        const rankedPapers = await this.rankPapers(relatedPapers, thread.theme, lastPaper);
         
-        thread.papers.push(paper);
-        this.processedPapers.add(paperId);
-        currentYear = paper.year;
-        
-        // Show all current threads and their papers (including current thread being built)
-        const allThreadsInfo = [
-          // Current thread (not in this.threads yet since we're still expanding it)
-          {
-            theme: thread.theme,
-            papers: thread.papers.map(p => p.title)
-          },
-          // Other threads that have been completed
-          ...this.threads.map(t => ({
-            theme: t.theme,
-            papers: t.papers.map(p => p.title)
-          }))
-        ];
-        
-        DEBUG_BG.log('allThreadsInfo:', JSON.stringify(allThreadsInfo, null, 2));
-        
-        this.addDebugNode('select', `Added "${paper.title}" to thread: ${thread.theme}`, {
-          year: paper.year,
-          authors: (paper.authors || []).slice(0, 3).map(a => a.name).join(', '),
-          citations: paper.citationCount,
-          threadSize: thread.papers.length,
-          allThreads: allThreadsInfo
-        });
-
-        if (this.threads.length < this.maxThreads) {
-          await this.checkForSubThreads(thread, paper);
+        // Check stop after LLM ranking
+        if (await this.checkStopped()) {
+          throw new Error('Analysis stopped by user');
         }
+        
+        DEBUG_BG.log('expandThread - ranked papers:', rankedPapers.length);
+
+        this.updateProgress(
+          `Ranking ${relatedPapers.length} papers...`,
+          'Using LLM to rank relevance to thread',
+          null
+        );
+
+        for (const paper of rankedPapers.slice(0, 3)) {
+          const paperId = paper.paperId || paper.title;
+          if (this.processedPapers.has(paperId)) {
+            DEBUG_BG.log('Skipping already processed paper:', paper.title);
+            this.addDebugNode('skip', `Already processed: ${paper.title}`, {
+              year: paper.year,
+              reason: 'duplicate'
+            });
+            continue;
+          }
+
+          DEBUG_BG.log('Adding paper to thread:', paper.title, paper.year);
+          
+          thread.papers.push(paper);
+          this.processedPapers.add(paperId);
+          currentYear = paper.year;
+          
+          // Build comprehensive thread state showing:
+          // 1. The full expansion stack (threads currently being expanded, including parents)
+          // 2. Completed threads in this.threads
+          const allThreadsInfo = {
+            expansionStack: this.expansionStack.map(t => ({
+              theme: t.theme,
+              papers: t.papers.map(p => p.title),
+              subThreads: t.subThreads.length
+            })),
+            completedThreads: this.threads.map(t => ({
+              theme: t.theme,
+              papers: t.papers.map(p => p.title),
+              subThreads: t.subThreads.length
+            }))
+          };
+          
+          DEBUG_BG.log('=== THREAD STATE ===');
+          DEBUG_BG.log('Expansion stack (depth ' + this.expansionStack.length + '):');
+          this.expansionStack.forEach((t, i) => {
+            const indent = '  '.repeat(i);
+            DEBUG_BG.log(indent + `[${i}] ${t.theme.substring(0, 60)}... (${t.papers.length} papers)`);
+          });
+          DEBUG_BG.log('Completed threads:', this.threads.length);
+          
+          this.addDebugNode('select', `Added "${paper.title}" to thread: ${thread.theme}`, {
+            year: paper.year,
+            authors: (paper.authors || []).slice(0, 3).map(a => a.name).join(', '),
+            citations: paper.citationCount,
+            threadSize: thread.papers.length,
+            stackDepth: this.expansionStack.length,
+            allThreads: allThreadsInfo
+          });
+
+          if (this.threads.length < this.maxThreads) {
+            await this.checkForSubThreads(thread, paper);
+            
+            // Check stop after sub-thread processing
+            if (await this.checkStopped()) {
+              throw new Error('Analysis stopped by user');
+            }
+          }
+        }
+        
+        // Move to next year
+        currentYear++;
       }
       
-      // Move to next year
-      currentYear++;
+      DEBUG_BG.log('expandThread complete - thread now has', thread.papers.length, 'papers');
+    } finally {
+      // Always pop from stack, even on error
+      this.expansionStack.pop();
     }
-    
-    DEBUG_BG.log('expandThread complete - thread now has', thread.papers.length, 'papers');
   }
 
   async checkForSubThreads(parentThread, paper) {
+    // Check stop before processing
+    if (await this.checkStopped()) {
+      throw new Error('Analysis stopped by user');
+    }
+    
     this.updateProgress(
       `Checking for new themes...`,
       `Analyzing: ${paper.title.substring(0, 50)}...`,
@@ -410,9 +485,19 @@ class ThroughlineAnalyzer {
     );
     
     const themes = await this.extractThemes(paper);
+    
+    // Check stop after LLM call
+    if (await this.checkStopped()) {
+      throw new Error('Analysis stopped by user');
+    }
 
     for (const theme of themes) {
       const isDifferent = await this.areThemesDifferent(parentThread.theme, theme.description);
+      
+      // Check stop after each comparison
+      if (await this.checkStopped()) {
+        throw new Error('Analysis stopped by user');
+      }
 
       if (isDifferent && this.threads.length < this.maxThreads) {
         const subThread = {
@@ -527,6 +612,11 @@ Return ONLY a JSON array:
     
     // Keep fetching until we get < 100 papers (indicates end of citations)
     while (true) {
+      // Check stop during batch fetching
+      if (await this.checkStopped()) {
+        throw new Error('Analysis stopped by user');
+      }
+      
       const offset = batchIndex * 100;
       DEBUG_BG.log(`Fetching citation batch ${batchIndex + 1} (offset ${offset})...`);
       
