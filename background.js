@@ -226,6 +226,7 @@ class ThroughlineAnalyzer {
     this.debugTree = []; // Track exploration decisions
     this.expansionStack = []; // Track nested thread expansion for debugging
     this.stopped = false; // Local stop flag for faster checking
+    this.seedPapers = []; // Original seeds - our north star for relevance
   }
   
   async checkStopped() {
@@ -256,6 +257,7 @@ class ThroughlineAnalyzer {
     this.processedPapers = new Set();
     this.expansionStack = [];
     this.stopped = false;  // Reset stop flag
+    this.seedPapers = seedPapers; // Store as our north star for relevance checks
     
     const totalSteps = seedPapers.length * 3; // Rough estimate
     let currentStep = 0;
@@ -492,14 +494,17 @@ class ThroughlineAnalyzer {
     }
 
     for (const theme of themes) {
-      const isDifferent = await this.areThemesDifferent(parentThread.theme, theme.description);
+      // Check both: is it different from parent AND still relevant to original seeds?
+      const shouldSpawn = await this.shouldCreateSubThread(parentThread.theme, theme.description);
       
       // Check stop after each comparison
       if (await this.checkStopped()) {
         throw new Error('Analysis stopped by user');
       }
 
-      if (isDifferent && this.threads.length < this.maxThreads) {
+      if (shouldSpawn && this.threads.length < this.maxThreads) {
+        DEBUG_BG.log('Creating sub-thread:', theme.description.substring(0, 60));
+        
         const subThread = {
           id: this.generateThreadId(),
           theme: theme.description,
@@ -520,6 +525,49 @@ class ThroughlineAnalyzer {
         }
       }
     }
+  }
+  
+  async shouldCreateSubThread(parentTheme, candidateTheme) {
+    // Build seed papers context
+    const seedContext = this.seedPapers.map(s => 
+      `- ${s.title}${s.abstract ? ': ' + s.abstract.substring(0, 200) + '...' : ''}`
+    ).join('\n');
+    
+    const prompt = `You are helping trace research lineages. The user started with these seed papers as their research interest:
+
+SEED PAPERS (the user's core interest):
+${seedContext}
+
+CURRENT THREAD THEME: ${parentTheme}
+
+CANDIDATE NEW THEME: ${candidateTheme}
+
+Should we create a new sub-thread for the candidate theme? 
+
+Answer "yes" ONLY if BOTH conditions are met:
+1. The candidate theme represents a meaningfully different research direction from the current thread
+2. The candidate theme is STILL RELEVANT to the original seed papers - it should be an evolution, application, or extension of the seed research, not a completely different topic
+
+Answer "no" if:
+- The candidate theme is too similar to the current thread (would be redundant)
+- The candidate theme has drifted away from the seed papers' core research area
+- The candidate theme is only tangentially related to what the user cares about
+
+Answer only "yes" or "no".`;
+
+    const response = await this.callLLM(prompt);
+    const shouldCreate = response.toLowerCase().includes('yes');
+    
+    this.addDebugNode('subthread_check', `Check sub-thread: "${candidateTheme.substring(0, 60)}..."`, {
+      parentTheme: parentTheme.substring(0, 100),
+      candidateTheme: candidateTheme.substring(0, 100),
+      seedPapers: this.seedPapers.map(s => s.title),
+      decision: shouldCreate ? 'CREATE' : 'SKIP'
+    });
+    
+    DEBUG_BG.log('Sub-thread check:', shouldCreate ? 'CREATE' : 'SKIP', '-', candidateTheme.substring(0, 50));
+    
+    return shouldCreate;
   }
 
   async extractThemes(paper) {

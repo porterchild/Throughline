@@ -281,6 +281,19 @@ function downloadDebugTree(tree) {
           text += `         Authors: ${p.authors}\n`;
         });
       }
+      // Sub-thread decision info
+      if (node.data.decision) {
+        text += `    Decision: ${node.data.decision}\n`;
+        if (node.data.parentTheme) {
+          text += `    Parent theme: ${node.data.parentTheme}\n`;
+        }
+        if (node.data.candidateTheme) {
+          text += `    Candidate theme: ${node.data.candidateTheme}\n`;
+        }
+        if (node.data.seedPapers) {
+          text += `    Seed papers: ${node.data.seedPapers.join(', ')}\n`;
+        }
+      }
       if (node.data.originalResponse) {
         text += `    === ORIGINAL LLM RESPONSE (PARSE FAILED) ===\n`;
         text += node.data.originalResponse + '\n';
