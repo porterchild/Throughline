@@ -186,8 +186,8 @@ async function handleStartAnalysis(papers) {
       });
     };
 
-    DEBUG_BG.log('Starting analyzer.analyze()...');
-    const threads = await analyzer.analyze(papers, progressCallback);
+    DEBUG_BG.log('Starting analyzer.traceResearchLineages()...');
+    const threads = await analyzer.traceResearchLineages(papers, progressCallback);
     DEBUG_BG.log('Analysis complete! Threads:', threads.length);
     DEBUG_BG.log('Debug tree nodes:', analyzer.debugTree.length);
 
@@ -251,7 +251,7 @@ class ThroughlineAnalyzer {
     });
   }
 
-  async analyze(seedPapers, progressCallback) {
+  async traceResearchLineages(seedPapers, progressCallback) {
     this.progressCallback = progressCallback;
     this.threads = [];
     this.processedPapers = new Set();
@@ -271,7 +271,7 @@ class ThroughlineAnalyzer {
       }
       
       currentStep++;
-      await this.processSeedPaper(seedPaper);
+      await this.extractThreadsFromSeed(seedPaper);
       this.updateProgress(
         `Processing seed ${currentStep}/${seedPapers.length}`,
         `Found ${this.threads.length} threads so far`,
@@ -287,7 +287,7 @@ class ThroughlineAnalyzer {
     return this.threads;
   }
 
-  async processSeedPaper(seedPaper) {
+  async extractThreadsFromSeed(seedPaper) {
     // Check stop before processing
     if (await this.checkStopped()) {
       throw new Error('Analysis stopped by user');
@@ -299,7 +299,7 @@ class ThroughlineAnalyzer {
       null
     );
 
-    const themes = await this.extractThemes(seedPaper);
+    const themes = await this.identifyResearchThemes(seedPaper);
     
     // Check stop after LLM call
     if (await this.checkStopped()) {
@@ -320,7 +320,7 @@ class ThroughlineAnalyzer {
         subThreads: []
       };
 
-      await this.expandThread(thread, thread.spawnYear);
+      await this.expandThreadToPresent(thread, thread.spawnYear);
       
       DEBUG_BG.log('Thread after expansion:', thread.theme, '- papers:', thread.papers.length, 'subthreads:', thread.subThreads.length);
       
@@ -335,7 +335,7 @@ class ThroughlineAnalyzer {
     }
   }
 
-  async expandThread(thread, startYear) {
+  async expandThreadToPresent(thread, startYear) {
     // Check if user requested stop
     if (await this.checkStopped()) {
       throw new Error('Analysis stopped by user');
@@ -354,7 +354,7 @@ class ThroughlineAnalyzer {
       let currentYear = startYear;
       const currentYearActual = new Date().getFullYear();
       
-      DEBUG_BG.log('expandThread - starting from year:', currentYear, 'to', currentYearActual);
+      DEBUG_BG.log('expandThreadToPresent - starting from year:', currentYear, 'to', currentYearActual);
       DEBUG_BG.log('Expansion stack depth:', this.expansionStack.length);
       
       this.addDebugNode('expand', `Expanding thread from ${startYear}: ${thread.theme}`, {
@@ -372,14 +372,14 @@ class ThroughlineAnalyzer {
         const lastPaper = thread.papers[thread.papers.length - 1];
         
         // Search for papers from current year onwards (not strictly future)
-        const relatedPapers = await this.findRelatedPapers(lastPaper, currentYear);
+        const relatedPapers = await this.fetchCitationsAndRecommendations(lastPaper, currentYear);
         
         // Check stop after API calls
         if (await this.checkStopped()) {
           throw new Error('Analysis stopped by user');
         }
         
-        DEBUG_BG.log('expandThread - got', relatedPapers.length, 'related papers');
+        DEBUG_BG.log('expandThreadToPresent - got', relatedPapers.length, 'related papers');
 
         if (relatedPapers.length === 0) {
           // Try next year
@@ -388,14 +388,14 @@ class ThroughlineAnalyzer {
           continue;
         }
 
-        const rankedPapers = await this.rankPapers(relatedPapers, thread.theme, lastPaper);
+        const rankedPapers = await this.rankByThreadRelevance(relatedPapers, thread.theme, lastPaper);
         
         // Check stop after LLM ranking
         if (await this.checkStopped()) {
           throw new Error('Analysis stopped by user');
         }
         
-        DEBUG_BG.log('expandThread - ranked papers:', rankedPapers.length);
+        DEBUG_BG.log('expandThreadToPresent - ranked papers:', rankedPapers.length);
 
         this.updateProgress(
           `Ranking ${relatedPapers.length} papers...`,
@@ -454,7 +454,7 @@ class ThroughlineAnalyzer {
           });
 
           if (this.threads.length < this.maxThreads) {
-            await this.checkForSubThreads(thread, paper);
+            await this.detectResearchDivergences(thread, paper);
             
             // Check stop after sub-thread processing
             if (await this.checkStopped()) {
@@ -467,14 +467,14 @@ class ThroughlineAnalyzer {
         currentYear++;
       }
       
-      DEBUG_BG.log('expandThread complete - thread now has', thread.papers.length, 'papers');
+      DEBUG_BG.log('expandThreadToPresent complete - thread now has', thread.papers.length, 'papers');
     } finally {
       // Always pop from stack, even on error
       this.expansionStack.pop();
     }
   }
 
-  async checkForSubThreads(parentThread, paper) {
+  async detectResearchDivergences(parentThread, paper) {
     // Check stop before processing
     if (await this.checkStopped()) {
       throw new Error('Analysis stopped by user');
@@ -486,7 +486,7 @@ class ThroughlineAnalyzer {
       null
     );
     
-    const themes = await this.extractThemes(paper);
+    const themes = await this.identifyResearchThemes(paper);
     
     // Check stop after LLM call
     if (await this.checkStopped()) {
@@ -495,7 +495,7 @@ class ThroughlineAnalyzer {
 
     for (const theme of themes) {
       // Check both: is it different from parent AND still relevant to original seeds?
-      const shouldSpawn = await this.shouldCreateSubThread(parentThread.theme, theme.description);
+      const shouldSpawn = await this.isRelevantNewDirection(parentThread.theme, theme.description);
       
       // Check stop after each comparison
       if (await this.checkStopped()) {
@@ -518,7 +518,7 @@ class ThroughlineAnalyzer {
           subThreads: []
         };
 
-        await this.expandThread(subThread, paper.year);
+        await this.expandThreadToPresent(subThread, paper.year);
 
         if (subThread.papers.length > 1) {
           parentThread.subThreads.push(subThread);
@@ -527,31 +527,41 @@ class ThroughlineAnalyzer {
     }
   }
   
-  async shouldCreateSubThread(parentTheme, candidateTheme) {
-    // Build seed papers context
+  async isRelevantNewDirection(parentTheme, candidateTheme) {
+    // Build seed papers context with full abstracts for better relevance checking
     const seedContext = this.seedPapers.map(s => 
-      `- ${s.title}${s.abstract ? ': ' + s.abstract.substring(0, 200) + '...' : ''}`
-    ).join('\n');
+      `- "${s.title}"${s.abstract ? '\n  Abstract: ' + s.abstract : ''}`
+    ).join('\n\n');
     
-    const prompt = `You are helping trace research lineages. The user started with these seed papers as their research interest:
+    const prompt = `You are helping trace research lineages. Your job is to be HIGHLY SELECTIVE about which research directions to follow.
 
-SEED PAPERS (the user's core interest):
+THE USER'S ORIGINAL SEED PAPERS (this is what they care about):
 ${seedContext}
 
-CURRENT THREAD THEME: ${parentTheme}
+CURRENT THREAD: ${parentTheme}
 
-CANDIDATE NEW THEME: ${candidateTheme}
+CANDIDATE NEW DIRECTION: ${candidateTheme}
 
-Should we create a new sub-thread for the candidate theme? 
+Should we create a new research thread for the candidate?
 
-Answer "yes" ONLY if BOTH conditions are met:
-1. The candidate theme represents a meaningfully different research direction from the current thread
-2. The candidate theme is STILL RELEVANT to the original seed papers - it should be an evolution, application, or extension of the seed research, not a completely different topic
+BE VERY CONSERVATIVE. Answer "yes" ONLY if ALL of these are true:
+1. The candidate is DIRECTLY relevant to the seed papers' SPECIFIC technical contribution - not just the broad field
+2. A researcher who read the seed papers would specifically want to follow this direction
+3. The candidate represents the seed papers' ideas being extended, applied, or evolved - not a tangentially related technique
+4. The candidate is meaningfully different from the current thread (not redundant)
 
-Answer "no" if:
-- The candidate theme is too similar to the current thread (would be redundant)
-- The candidate theme has drifted away from the seed papers' core research area
-- The candidate theme is only tangentially related to what the user cares about
+Answer "no" if ANY of these are true:
+- The candidate shares a broad category (e.g., "robotics", "VLAs", "foundation models") but not the seed's specific focus
+- The connection requires multiple hops of reasoning (seed → A → B → candidate)
+- The candidate is about general techniques that COULD apply to the seed's domain but aren't specific to it
+- A researcher focused on the seed papers' specific contribution would say "that's a different research agenda"
+
+Examples of DRIFT to reject:
+- Seed about "visual navigation" → candidate about "general robot manipulation" (different task domain)
+- Seed about "foundation models for X" → candidate about "finetuning techniques for any model" (too general)
+- Seed about specific architecture → candidate about "datasets for robotics" (infrastructure, not the core idea)
+
+When in doubt, answer "no". We want focused lineages, not broad surveys.
 
 Answer only "yes" or "no".`;
 
@@ -570,7 +580,7 @@ Answer only "yes" or "no".`;
     return shouldCreate;
   }
 
-  async extractThemes(paper) {
+  async identifyResearchThemes(paper) {
     const prompt = `Analyze this paper and identify 2-3 distinct research threads.
 
 Paper: ${paper.title}
@@ -592,7 +602,7 @@ Return ONLY a JSON array:
     }
   }
 
-  async findRelatedPapers(seedPaper, minYear) {
+  async fetchCitationsAndRecommendations(seedPaper, minYear) {
     this.updateProgress(
       `Searching Semantic Scholar...`,
       `Finding papers from ${minYear}+ using citations + embeddings`,
@@ -602,8 +612,8 @@ Return ONLY a JSON array:
     // Get the paper ID - search by title if we don't have a valid one
     let paperId = seedPaper.paperId;
     
-    DEBUG_BG.log('findRelatedPapers - original paperId:', paperId);
-    DEBUG_BG.log('findRelatedPapers - paper title:', seedPaper.title);
+    DEBUG_BG.log('fetchCitationsAndRecommendations - original paperId:', paperId);
+    DEBUG_BG.log('fetchCitationsAndRecommendations - paper title:', seedPaper.title);
 
     // If no paperId or it's a hash, search by title to get real Semantic Scholar ID
     if (!paperId || paperId.length < 10) {
@@ -805,10 +815,10 @@ Return ONLY a JSON array:
     return papers;
   }
 
-  async rankPapers(papers, threadTheme, seedPaper) {
+  async rankByThreadRelevance(papers, threadTheme, seedPaper) {
     if (papers.length === 0) return [];
 
-    DEBUG_BG.log('rankPapers - input:', papers.length, 'papers for theme:', threadTheme.substring(0, 50));
+    DEBUG_BG.log('rankByThreadRelevance - input:', papers.length, 'papers for theme:', threadTheme.substring(0, 50));
 
     const seedAuthors = (seedPaper.authors || []).map(a => a.name).join(', ');
 
@@ -869,7 +879,7 @@ Return ONLY a JSON array of indices: [1, 5, 3, ...]`;
       }
       
       const ranked = indices.map(i => papers[i - 1]).filter(p => p);
-      DEBUG_BG.log('rankPapers - output:', ranked.length, 'ranked papers');
+      DEBUG_BG.log('rankByThreadRelevance - output:', ranked.length, 'ranked papers');
       
       // Track top 10 ranked papers
       const top10 = ranked.slice(0, 10).map(p => ({
@@ -885,7 +895,7 @@ Return ONLY a JSON array of indices: [1, 5, 3, ...]`;
       
       return ranked;
     } catch (error) {
-      DEBUG_BG.error('rankPapers - LLM response parse failed');
+      DEBUG_BG.error('rankByThreadRelevance - LLM response parse failed');
       DEBUG_BG.error('Raw LLM response (first 500 chars):', response.substring(0, 500));
       DEBUG_BG.error('Parse error:', error.message);
       
@@ -911,7 +921,7 @@ Return ONLY the fixed JSON array: [1, 2, 3, ...]`;
         }
         
         const ranked = indices.map(i => papers[i - 1]).filter(p => p);
-        DEBUG_BG.log('rankPapers - successfully recovered with LLM fix:', ranked.length, 'papers');
+        DEBUG_BG.log('rankByThreadRelevance - successfully recovered with LLM fix:', ranked.length, 'papers');
         
         this.addDebugNode('rank', `Ranked ${papers.length} papers for theme: ${threadTheme} (after LLM fix)`, {
           top10: ranked.slice(0, 10).map(p => ({
