@@ -167,6 +167,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('progress').style.display = 'block';
         document.getElementById('results').style.display = 'none';
         startProgressPolling();
+        
+        // Attach stop button handler
+        const stopBtn = document.getElementById('stop-btn');
+        if (stopBtn) {
+          stopBtn.disabled = false;
+          stopBtn.textContent = '⏹ Stop';
+          stopBtn.style.background = '#ef4444';
+          
+          stopBtn.onclick = () => {
+            chrome.runtime.sendMessage({ action: 'stopAnalysis' });
+            chrome.storage.local.set({ analysisShouldStop: true });
+            
+            stopBtn.disabled = true;
+            stopBtn.textContent = '⏹ Stopping...';
+            stopBtn.style.background = '#9ca3af';
+          };
+        }
       } else {
         // No results and no progress - show restart
         document.getElementById('progress-text').textContent = 'Start analysis to trace throughlines';
@@ -210,107 +227,216 @@ function downloadDebugTree(tree) {
     return;
   }
   
-  // Format as readable text
-  let text = '=== THROUGHLINE ANALYSIS DEBUG TREE ===\n\n';
+  // Format as readable text with proper indentation
+  let text = '=== THROUGHLINE ANALYSIS DEBUG TREE ===\n';
+  text += '\nLEGEND:\n';
+  text += '  EXPAND_BEGIN/END = Start/end expanding a thread\n';
+  text += '  LOOP_BEGIN/END = Start/end one iteration of expansion loop\n';
+  text += '  SEARCH = Fetch citations + recommendations for a paper\n';
+  text += '  RANK = LLM ranks papers by relevance to thread theme\n';
+  text += '  SELECT_DECISIONS = LLM decides which papers to ADD/SKIP with reasoning\n';
+  text += '  SELECT_BEGIN = Summary of papers selected\n';
+  text += '  SELECT/ADD = Add a paper to the current thread\n';
+  text += '  SKIP = Paper skipped (already processed)\n';
+  text += '  THEMES_EXTRACT = Check paper for potential sub-thread themes\n';
+  text += '  SUBTHREAD_CHECK = Check if a theme should spawn a sub-thread (with reasoning)\n';
+  text += '\n' + '='.repeat(70) + '\n';
   
   tree.forEach((node, i) => {
-    text += `\n[${i + 1}] ${node.type.toUpperCase()}: ${node.message}\n`;
+    // Calculate indentation based on stack depth
+    const stackDepth = node.data?.stackDepth || 1;
+    const baseIndent = '  '.repeat(stackDepth - 1);
+    const dataIndent = baseIndent + '    ';
+    
+    // Format the main line
+    text += `\n${baseIndent}[${i + 1}] ${node.type.toUpperCase()}: ${node.message}\n`;
+    
     if (node.data) {
-      if (node.data.stackDepth !== undefined) {
-        text += `    Stack depth: ${node.data.stackDepth}\n`;
+      // Expand begin
+      if (node.type === 'expand_begin') {
+        text += `${dataIndent}Starting from paper: ${node.data.spawnPaper}\n`;
+        if (node.data.startingPapers && node.data.startingPapers.length > 0) {
+          text += `${dataIndent}Thread starts with: ${node.data.startingPapers.join(' → ')}\n`;
+        }
       }
-      if (node.data.yearDistribution) {
-        text += `    Year distribution: ${JSON.stringify(node.data.yearDistribution)}\n`;
-      }
-      if (node.data.afterMerge !== undefined) {
-        text += `    After merge (dedup citing + recommended): ${node.data.afterMerge}\n`;
-      }
-      if (node.data.afterQualityFilter !== undefined) {
-        text += `    After quality filter: ${node.data.afterQualityFilter}\n`;
-      }
-      if (node.data.afterYearFilter !== undefined) {
-        text += `    Final count (after year filter): ${node.data.afterYearFilter}\n`;
-      }
-      // Handle new expansion stack format
-      if (node.data.allThreads && node.data.allThreads.expansionStack) {
-        text += `    === EXPANSION STACK (threads being built) ===\n`;
-        node.data.allThreads.expansionStack.forEach((t, idx) => {
-          const indent = '    ' + '  '.repeat(idx);
-          text += `${indent}[${idx}] ${t.theme}\n`;
-          if (t.papers && t.papers.length > 0) {
-            t.papers.forEach((p, pidx) => {
-              text += `${indent}  ${pidx + 1}. ${p}\n`;
-            });
-          }
-          if (t.subThreads > 0) {
-            text += `${indent}  (${t.subThreads} sub-threads)\n`;
-          }
-        });
-        if (node.data.allThreads.completedThreads && node.data.allThreads.completedThreads.length > 0) {
-          text += `    === COMPLETED THREADS ===\n`;
-          node.data.allThreads.completedThreads.forEach((t, idx) => {
-            text += `    Thread ${idx + 1}: ${t.theme}\n`;
-            if (t.papers && t.papers.length > 0) {
-              t.papers.forEach((p, pidx) => {
-                text += `      ${pidx + 1}. ${p}\n`;
-              });
-            }
+      
+      // Expand end
+      if (node.type === 'expand_end') {
+        text += `${dataIndent}Final papers in thread:\n`;
+        if (node.data.finalPapers) {
+          node.data.finalPapers.forEach((p, idx) => {
+            text += `${dataIndent}  ${idx + 1}. ${p}\n`;
           });
         }
-        text += `    === END THREADS ===\n`;
       }
-      // Handle legacy format (array of threads)
-      else if (node.data.allThreads && Array.isArray(node.data.allThreads) && node.data.allThreads.length > 0) {
-        text += `    === ALL CURRENT THREADS ===\n`;
-        node.data.allThreads.forEach((t, idx) => {
-          text += `    Thread ${idx + 1}: ${t.theme}\n`;
-          if (t.papers && t.papers.length > 0) {
-            t.papers.forEach((p, pidx) => {
-              text += `      ${pidx + 1}. ${p}\n`;
-            });
-          } else {
-            text += `      (no papers yet)\n`;
+      
+      // Loop begin
+      if (node.type === 'loop_begin') {
+        text += `${dataIndent}Thread has ${node.data.threadPaperCount} papers so far\n`;
+        if (node.data.explanation) {
+          text += `${dataIndent}Goal: ${node.data.explanation}\n`;
+        }
+      }
+      
+      // Loop end
+      if (node.type === 'loop_end') {
+        if (node.data.explanation) {
+          text += `${dataIndent}${node.data.explanation}\n`;
+        }
+      }
+      
+      // Search info  
+      if (node.type === 'search') {
+        if (node.data.reason) {
+          text += `${dataIndent}Trigger: ${node.data.reason}\n`;
+        }
+        if (node.data.found) {
+          text += `${dataIndent}Found: ${node.data.found}\n`;
+        }
+        if (node.data.yearDistribution) {
+          text += `${dataIndent}Year distribution: ${JSON.stringify(node.data.yearDistribution)}\n`;
+        }
+        if (node.data.afterMerge !== undefined) {
+          text += `${dataIndent}After merge (dedup): ${node.data.afterMerge}\n`;
+        }
+        if (node.data.afterQualityFilter !== undefined) {
+          text += `${dataIndent}After quality filter: ${node.data.afterQualityFilter}\n`;
+        }
+        if (node.data.afterYearFilter !== undefined) {
+          text += `${dataIndent}Final count: ${node.data.afterYearFilter}\n`;
+        }
+      }
+      
+      // Rank info
+      if (node.type === 'rank') {
+        if (node.data.theme) {
+          text += `${dataIndent}Theme: ${node.data.theme}\n`;
+        }
+        if (node.data.criteria) {
+          text += `${dataIndent}Ranking criteria: ${node.data.criteria}\n`;
+        }
+        if (node.data.top10) {
+          text += `${dataIndent}Top 10 ranked:\n`;
+          node.data.top10.forEach((p, j) => {
+            text += `${dataIndent}  ${j + 1}. [${p.year}] ${p.title} (${p.citations} cites)\n`;
+            text += `${dataIndent}     Authors: ${p.authors}\n`;
+          });
+        }
+      }
+      
+      // Select begin
+      if (node.type === 'select_begin') {
+        if (node.data.selectedPapers) {
+          text += `${dataIndent}Selected papers:\n`;
+          node.data.selectedPapers.forEach(c => {
+            text += `${dataIndent}  - ${c}\n`;
+          });
+        } else if (node.data.topCandidates) {
+          text += `${dataIndent}Top candidates (none selected):\n`;
+          node.data.topCandidates.forEach(c => {
+            text += `${dataIndent}  ${c}\n`;
+          });
+        }
+      }
+      
+      // Select decisions (LLM reasoning for each paper)
+      if (node.type === 'select_decisions') {
+        if (node.data.decisions) {
+          text += `${dataIndent}LLM decisions:\n`;
+          node.data.decisions.forEach(d => {
+            const marker = d.decision === 'ADD' ? '✓' : '✗';
+            text += `${dataIndent}  ${marker} ${d.decision}: ${d.title}...\n`;
+            text += `${dataIndent}      Reason: ${d.reason}\n`;
+          });
+        }
+        if (node.data.error) {
+          text += `${dataIndent}Parse error: ${node.data.error}\n`;
+        }
+      }
+      
+      // Select info
+      if (node.type === 'select') {
+        if (node.data.whySelected) {
+          text += `${dataIndent}Why: ${node.data.whySelected}\n`;
+        }
+        if (node.data.year) {
+          text += `${dataIndent}Year: ${node.data.year}, Citations: ${node.data.citations || 0}\n`;
+        }
+        if (node.data.authors) {
+          text += `${dataIndent}Authors: ${node.data.authors}\n`;
+        }
+        if (node.data.threadNowHas) {
+          text += `${dataIndent}Thread now has: ${node.data.threadNowHas.join(' → ')}\n`;
+        }
+        // Show expansion stack (condensed)
+        if (node.data.allThreads && node.data.allThreads.expansionStack) {
+          const stack = node.data.allThreads.expansionStack;
+          if (stack.length > 1) {
+            text += `${dataIndent}[Expanding within ${stack.length} nested threads]\n`;
           }
-        });
-        text += `    === END THREADS ===\n`;
+        }
       }
-      if (node.data.top10) {
-        text += `    Top 10 ranked:\n`;
-        node.data.top10.forEach((p, j) => {
-          text += `      ${j + 1}. [${p.year}] ${p.title} (${p.citations} cites)\n`;
-          text += `         Authors: ${p.authors}\n`;
-        });
-      }
-      // Sub-thread decision info
-      if (node.data.decision) {
-        text += `    Decision: ${node.data.decision}\n`;
+      
+      // Sub-thread check info
+      if (node.type === 'subthread_check') {
+        if (node.data.decision) {
+          text += `${dataIndent}Decision: ${node.data.decision}\n`;
+        }
+        if (node.data.reason) {
+          text += `${dataIndent}Reason: ${node.data.reason}\n`;
+        }
         if (node.data.parentTheme) {
-          text += `    Parent theme: ${node.data.parentTheme}\n`;
+          text += `${dataIndent}Parent theme: ${node.data.parentTheme}\n`;
         }
         if (node.data.candidateTheme) {
-          text += `    Candidate theme: ${node.data.candidateTheme}\n`;
+          text += `${dataIndent}Candidate theme: ${node.data.candidateTheme}\n`;
         }
         if (node.data.seedPapers) {
-          text += `    Seed papers: ${node.data.seedPapers.join(', ')}\n`;
+          text += `${dataIndent}Seed papers: ${node.data.seedPapers.join(', ')}\n`;
         }
       }
+      
+      // Skip info
+      if (node.type === 'skip') {
+        if (node.data.reason) {
+          text += `${dataIndent}Reason: ${node.data.reason}\n`;
+        }
+      }
+      
+      // Theme extraction
+      if (node.type === 'themes_extract') {
+        text += `${dataIndent}Paper: ${node.data.paper}\n`;
+        text += `${dataIndent}Parent thread: ${node.data.parentTheme}\n`;
+      }
+      
+      // Themes found
+      if (node.type === 'themes_found') {
+        if (node.data.themes && node.data.themes.length > 0) {
+          text += `${dataIndent}Extracted themes:\n`;
+          node.data.themes.forEach((t, j) => {
+            text += `${dataIndent}  ${j + 1}. ${t}\n`;
+          });
+        }
+      }
+      
+      // Error handling
       if (node.data.originalResponse) {
-        text += `    === ORIGINAL LLM RESPONSE (PARSE FAILED) ===\n`;
+        text += `${dataIndent}=== ORIGINAL LLM RESPONSE (PARSE FAILED) ===\n`;
         text += node.data.originalResponse + '\n';
-        text += `    === END ORIGINAL ===\n`;
+        text += `${dataIndent}=== END ORIGINAL ===\n`;
       }
       if (node.data.cleanedAttempt) {
-        text += `    === CLEANED ATTEMPT ===\n`;
+        text += `${dataIndent}=== CLEANED ATTEMPT ===\n`;
         text += node.data.cleanedAttempt + '\n';
-        text += `    === END CLEANED ===\n`;
+        text += `${dataIndent}=== END CLEANED ===\n`;
       }
       if (node.data.fullResponse) {
-        text += `    === FULL LLM RESPONSE (PARSE FAILED) ===\n`;
+        text += `${dataIndent}=== FULL LLM RESPONSE (PARSE FAILED) ===\n`;
         text += node.data.fullResponse + '\n';
-        text += `    === END LLM RESPONSE ===\n`;
+        text += `${dataIndent}=== END LLM RESPONSE ===\n`;
       }
       if (node.data.error) {
-        text += `    Error: ${node.data.error}\n`;
+        text += `${dataIndent}Error: ${node.data.error}\n`;
       }
     }
   });
@@ -416,11 +542,15 @@ async function runAnalysis() {
     // Add stop button handler
     const stopBtn = document.getElementById('stop-btn');
     if (stopBtn) {
+      // Reset button state
+      stopBtn.disabled = false;
+      stopBtn.textContent = '⏹ Stop';
+      stopBtn.style.background = '#ef4444';
+      
       stopBtn.onclick = () => {
-        DEBUG.log('Stop button clicked');
-        chrome.runtime.sendMessage({ action: 'stopAnalysis' }, (response) => {
-          DEBUG.log('Stop response:', response);
-        });
+        chrome.runtime.sendMessage({ action: 'stopAnalysis' });
+        chrome.storage.local.set({ analysisShouldStop: true });
+        
         stopBtn.disabled = true;
         stopBtn.textContent = '⏹ Stopping...';
         stopBtn.style.background = '#9ca3af';
@@ -449,6 +579,9 @@ function startProgressPolling() {
         document.getElementById('progress-text').textContent = response.progress.message;
         document.getElementById('progress-detail').textContent = response.progress.detail;
         document.getElementById('progress-bar').style.width = response.progress.percent + '%';
+        
+        // Update threads display
+        updateThreadsDisplay(response.progress.threads || []);
       }
 
       // Check if complete
@@ -465,14 +598,16 @@ function startProgressPolling() {
         clearInterval(pollInterval);
         document.getElementById('progress').style.display = 'none';
         
-        // Show error message with debug tree download option
+        const isStopped = response.error.includes('stopped by user');
+        
+        // Show error/stopped message with debug tree download option
         const results = document.getElementById('results');
         results.innerHTML = `
-          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
+          <div style="background: ${isStopped ? '#fffbeb' : '#fef2f2'}; border: 1px solid ${isStopped ? '#fde68a' : '#fecaca'}; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: start;">
               <div>
-                <h3 style="font-size: 14px; color: #991b1b; margin: 0 0 8px 0;">⚠️ Analysis Failed</h3>
-                <p style="font-size: 12px; color: #7f1d1d; margin: 0;">${response.error}</p>
+                <h3 style="font-size: 14px; color: ${isStopped ? '#92400e' : '#991b1b'}; margin: 0 0 8px 0;">${isStopped ? '⏹ Analysis Stopped' : '⚠️ Analysis Failed'}</h3>
+                <p style="font-size: 12px; color: ${isStopped ? '#78350f' : '#7f1d1d'}; margin: 0;">${isStopped ? 'Analysis was stopped by user. Partial results may be available in the debug tree.' : response.error}</p>
               </div>
               <button id="debug-tree-btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">📊 Download Debug Tree</button>
             </div>
@@ -528,6 +663,52 @@ function startDebugLogPolling() {
 // Load trace screen with papers
 function loadTraceScreen() {
   // This function is no longer needed - analysis starts automatically
+}
+
+// Update live threads display during analysis
+function updateThreadsDisplay(threads) {
+  const container = document.getElementById('progress-threads');
+  if (!container) return;
+  
+  if (!threads || threads.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  // Check if user has scrolled up (not at bottom) - if so, don't auto-scroll
+  const wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+  
+  let html = '<div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">Building threads...</div>';
+  
+  threads.forEach((thread, i) => {
+    const isCompleted = thread.completed;
+    const statusIcon = isCompleted ? '✓' : '🔄';
+    const statusColor = isCompleted ? '#10b981' : '#6366f1';
+    
+    html += `
+      <div style="background: ${isCompleted ? '#f0fdf4' : '#f5f3ff'}; border: 1px solid ${isCompleted ? '#bbf7d0' : '#c7d2fe'}; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+          <span style="color: ${statusColor};">${statusIcon}</span>
+          <span style="font-size: 11px; font-weight: 600; color: #374151;">${escapeHtml(thread.theme)}</span>
+        </div>
+        <div style="padding-left: 20px;">
+          ${thread.papers.map((p, j) => `
+            <div style="font-size: 10px; color: #6b7280; padding: 2px 0; display: flex; align-items: center; gap: 4px;">
+              <span style="background: #6366f1; color: white; padding: 1px 4px; border-radius: 2px; font-size: 9px;">${p.year || '?'}</span>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.title.substring(0, 50))}${p.title.length > 50 ? '...' : ''}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  
+  // Only auto-scroll if user was already at bottom
+  if (wasAtBottom) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 function displayResults(threads) {

@@ -38,6 +38,7 @@ Get OpenRouter key: https://openrouter.ai/keys (free tier available)
 ### During Analysis
 
 - **Progress bar** shows current operation
+- **Live thread display** shows threads being built in real-time
 - **Stop button** (⏹) stops analysis gracefully and saves debug tree
 - Analysis continues in background - safe to close popup
 
@@ -65,9 +66,9 @@ Get OpenRouter key: https://openrouter.ai/keys (free tier available)
    - LLM ranks papers by relevance to thread theme
    - Helps identify same-lab work and conceptual connections
 6. **Thread Expansion**:
-   - Add top-ranked paper to thread
+   - LLM selects papers to add (same authors/lab = strongest signal)
    - Check if paper spawns new sub-threads
-   - Recurse until reaching current year
+   - Recurse until reaching current year or thread exhausted
 7. **Sub-thread Detection**:
    - LLM analyzes each paper for new research directions
    - Spawns sub-threads for significant divergences
@@ -110,11 +111,12 @@ Download the debug tree to see:
 
 Example debug tree entry:
 ```
-[3] RANK: Ranked 309 papers for theme: Development of ViNT...
-    Top 10 ranked:
-      1. [2023] NoMaD: Goal Masked... (244 cites)
-         Authors: A. Sridhar, Dhruv Shah
-      ...
+[5] SELECT_DECISIONS: LLM selected 2 of 10 candidates
+    LLM decisions:
+      ✓ ADD: NoMaD: Goal Masked Diffusion Policies...
+          Reason: Same authors (Shah), direct follow-up extending ViNT
+      ✗ SKIP: Navigation with Large Language Models...
+          Reason: Uses LLMs for planning, unrelated architecture
 ```
 
 ## Technical Details
@@ -142,7 +144,7 @@ Example debug tree entry:
 ### Error Handling
 
 - **LLM parse errors**: Automatic self-correction retry
-- **Rate limiting**: Exponential backoff with retry
+- **Rate limiting**: Exponential backoff up to 20s, then hard failure
 - **Malformed responses**: Debug tree captures for analysis
 - **Stop button**: Graceful termination with debug tree save
 
@@ -181,4 +183,3 @@ throughline-extension/
 ### Debug Logging
 
 Set `DEBUG_ENABLED = true` in background.js for verbose console logs.
-

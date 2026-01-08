@@ -60,9 +60,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   } else if (request.action === 'stopAnalysis') {
     DEBUG_BG.log('Stop analysis requested');
-    chrome.storage.local.set({ analysisShouldStop: true }, () => {
-      sendResponse({ success: true });
-    });
+    chrome.storage.local.set({ analysisShouldStop: true });
+    sendResponse({ success: true });
     return true;
   }
 });
@@ -179,10 +178,15 @@ async function handleStartAnalysis(papers) {
     DEBUG_BG.log('Analyzer created successfully');
     
     // Custom progress callback that saves to storage
-    const progressCallback = (msg, detail, percent) => {
+    const progressCallback = (msg, detail, percent, threads) => {
       DEBUG_BG.log('Progress:', msg, '|', detail, '|', percent + '%');
       chrome.storage.local.set({
-        analysisProgress: { message: msg, detail: detail || '', percent: percent || 0 }
+        analysisProgress: { 
+          message: msg, 
+          detail: detail || '', 
+          percent: percent || 0,
+          threads: threads || []
+        }
       });
     };
 
@@ -227,6 +231,7 @@ class ThroughlineAnalyzer {
     this.expansionStack = []; // Track nested thread expansion for debugging
     this.stopped = false; // Local stop flag for faster checking
     this.seedPapers = []; // Original seeds - our north star for relevance
+    this.rateLimitDelay = 0; // Adaptive delay between Semantic Scholar calls
   }
   
   async checkStopped() {
@@ -343,6 +348,8 @@ class ThroughlineAnalyzer {
     
     // Track this thread in expansion stack for debugging
     this.expansionStack.push(thread);
+    const stackDepth = this.expansionStack.length;
+    const indent = '  '.repeat(stackDepth - 1);
     
     try {
       this.updateProgress(
@@ -355,21 +362,46 @@ class ThroughlineAnalyzer {
       const currentYearActual = new Date().getFullYear();
       
       DEBUG_BG.log('expandThreadToPresent - starting from year:', currentYear, 'to', currentYearActual);
-      DEBUG_BG.log('Expansion stack depth:', this.expansionStack.length);
+      DEBUG_BG.log('Expansion stack depth:', stackDepth);
       
-      this.addDebugNode('expand', `Expanding thread from ${startYear}: ${thread.theme}`, {
+      this.addDebugNode('expand_begin', `BEGIN EXPAND THREAD (depth ${stackDepth}): ${thread.theme.substring(0, 80)}...`, {
+        stackDepth,
         spawnYear: thread.spawnYear,
         spawnPaper: thread.spawnPaper.title,
-        stackDepth: this.expansionStack.length
+        startingPapers: thread.papers.map(p => p.title)
       });
 
+      let iterationCount = 0;
+      let lastSearchedPaperId = null; // Track to avoid redundant searches
+      
       while (currentYear < currentYearActual && thread.papers.length < this.maxPapersPerThread) {
+        iterationCount++;
+        
         // Check stop at start of each iteration
         if (await this.checkStopped()) {
           throw new Error('Analysis stopped by user');
         }
         
         const lastPaper = thread.papers[thread.papers.length - 1];
+        const lastPaperId = lastPaper.paperId || lastPaper.title;
+        
+        // If we're about to search from the same paper again, we've exhausted this thread
+        if (lastPaperId === lastSearchedPaperId) {
+          this.addDebugNode('loop_end', `── THREAD EXHAUSTED: Already searched from "${lastPaper.title.substring(0, 40)}..." with no results ──`, {
+            stackDepth,
+            reason: 'No new papers were added, and we would be searching from the same paper again'
+          });
+          break;
+        }
+        lastSearchedPaperId = lastPaperId;
+        
+        this.addDebugNode('loop_begin', `── ITERATION ${iterationCount}: Expand thread from year ${currentYear} ──`, {
+          stackDepth,
+          currentYear,
+          threadPaperCount: thread.papers.length,
+          lastPaperInThread: lastPaper.title,
+          explanation: `Search for successors to "${lastPaper.title.substring(0, 40)}..." (${currentYear}+), rank by lineage relevance, add true successors.`
+        });
         
         // Search for papers from current year onwards (not strictly future)
         const relatedPapers = await this.fetchCitationsAndRecommendations(lastPaper, currentYear);
@@ -382,7 +414,10 @@ class ThroughlineAnalyzer {
         DEBUG_BG.log('expandThreadToPresent - got', relatedPapers.length, 'related papers');
 
         if (relatedPapers.length === 0) {
-          // Try next year
+          this.addDebugNode('loop_end', `── END ITERATION ${iterationCount} (no papers found, trying next year) ──`, {
+            stackDepth,
+            nextYear: currentYear + 1
+          });
           currentYear++;
           if (currentYear >= currentYearActual) break;
           continue;
@@ -403,13 +438,37 @@ class ThroughlineAnalyzer {
           null
         );
 
-        for (const paper of rankedPapers.slice(0, 3)) {
+        // Ask LLM which papers are truly relevant (not just top 3)
+        const selectedPapers = await this.selectRelevantPapers(rankedPapers, thread, 5);
+        
+        // Check stop after LLM selection
+        if (await this.checkStopped()) {
+          throw new Error('Analysis stopped by user');
+        }
+
+        let papersAddedThisIteration = 0;
+        
+        if (selectedPapers.length === 0) {
+          this.addDebugNode('select_begin', `LLM selected 0 papers from ${rankedPapers.length} candidates - none deemed relevant`, {
+            stackDepth,
+            topCandidates: rankedPapers.slice(0, 5).map((p, i) => `#${i+1}: ${p.title.substring(0, 50)}...`)
+          });
+        } else {
+          this.addDebugNode('select_begin', `Will add ${selectedPapers.length} papers (LLM-selected from ${rankedPapers.length} candidates)`, {
+            stackDepth,
+            selectedPapers: selectedPapers.map((p, i) => `${p.title.substring(0, 50)}...`)
+          });
+        }
+        
+        for (let i = 0; i < selectedPapers.length; i++) {
+          const paper = selectedPapers[i];
           const paperId = paper.paperId || paper.title;
           if (this.processedPapers.has(paperId)) {
             DEBUG_BG.log('Skipping already processed paper:', paper.title);
-            this.addDebugNode('skip', `Already processed: ${paper.title}`, {
+            this.addDebugNode('skip', `SKIP: "${paper.title}" (already in another thread)`, {
               year: paper.year,
-              reason: 'duplicate'
+              reason: 'duplicate',
+              stackDepth
             });
             continue;
           }
@@ -419,10 +478,9 @@ class ThroughlineAnalyzer {
           thread.papers.push(paper);
           this.processedPapers.add(paperId);
           currentYear = paper.year;
+          papersAddedThisIteration++;
           
-          // Build comprehensive thread state showing:
-          // 1. The full expansion stack (threads currently being expanded, including parents)
-          // 2. Completed threads in this.threads
+          // Build comprehensive thread state
           const allThreadsInfo = {
             expansionStack: this.expansionStack.map(t => ({
               theme: t.theme,
@@ -437,19 +495,21 @@ class ThroughlineAnalyzer {
           };
           
           DEBUG_BG.log('=== THREAD STATE ===');
-          DEBUG_BG.log('Expansion stack (depth ' + this.expansionStack.length + '):');
-          this.expansionStack.forEach((t, i) => {
-            const indent = '  '.repeat(i);
-            DEBUG_BG.log(indent + `[${i}] ${t.theme.substring(0, 60)}... (${t.papers.length} papers)`);
+          DEBUG_BG.log('Expansion stack (depth ' + stackDepth + '):');
+          this.expansionStack.forEach((t, idx) => {
+            const ind = '  '.repeat(idx);
+            DEBUG_BG.log(ind + `[${idx}] ${t.theme.substring(0, 60)}... (${t.papers.length} papers)`);
           });
           DEBUG_BG.log('Completed threads:', this.threads.length);
           
-          this.addDebugNode('select', `Added "${paper.title}" to thread: ${thread.theme}`, {
+          this.addDebugNode('select', `ADD: "${paper.title}"`, {
             year: paper.year,
-            authors: (paper.authors || []).slice(0, 3).map(a => a.name).join(', '),
+            authors: (paper.authors || []).slice(0, 2).map(a => a.name).join(', '),
             citations: paper.citationCount,
-            threadSize: thread.papers.length,
-            stackDepth: this.expansionStack.length,
+            whySelected: paper.selectionReason || 'Selected by LLM',
+            threadTheme: thread.theme.substring(0, 80),
+            threadNowHas: thread.papers.map(p => p.title),
+            stackDepth,
             allThreads: allThreadsInfo
           });
 
@@ -463,11 +523,30 @@ class ThroughlineAnalyzer {
           }
         }
         
-        // Move to next year
-        currentYear++;
+        const newLastPaper = thread.papers[thread.papers.length - 1];
+        this.addDebugNode('loop_end', `── END ITERATION ${iterationCount} ──`, {
+          stackDepth,
+          papersAdded: papersAddedThisIteration,
+          threadNowHas: thread.papers.length,
+          nextSearchWillUse: newLastPaper.title,
+          explanation: papersAddedThisIteration > 0 
+            ? `Added ${papersAddedThisIteration} papers. Next iteration will search from "${newLastPaper.title}"`
+            : `No new papers added. Moving to year ${currentYear + 1}`
+        });
+        
+        if (papersAddedThisIteration === 0) {
+          // LLM found no relevant papers, or all were already processed - move to next year
+          currentYear++;
+        }
       }
       
       DEBUG_BG.log('expandThreadToPresent complete - thread now has', thread.papers.length, 'papers');
+      
+      this.addDebugNode('expand_end', `END EXPAND THREAD (depth ${stackDepth}): ${thread.papers.length} papers total`, {
+        stackDepth,
+        finalPapers: thread.papers.map(p => p.title),
+        theme: thread.theme.substring(0, 80)
+      });
     } finally {
       // Always pop from stack, even on error
       this.expansionStack.pop();
@@ -479,6 +558,14 @@ class ThroughlineAnalyzer {
     if (await this.checkStopped()) {
       throw new Error('Analysis stopped by user');
     }
+    
+    const stackDepth = this.expansionStack.length;
+    
+    this.addDebugNode('themes_extract', `Extracting themes from "${paper.title.substring(0, 50)}..." to check for sub-threads`, {
+      stackDepth,
+      paper: paper.title,
+      parentTheme: parentThread.theme.substring(0, 80)
+    });
     
     this.updateProgress(
       `Checking for new themes...`,
@@ -492,6 +579,11 @@ class ThroughlineAnalyzer {
     if (await this.checkStopped()) {
       throw new Error('Analysis stopped by user');
     }
+    
+    this.addDebugNode('themes_found', `Found ${themes.length} themes in paper, checking each for relevance to seeds`, {
+      stackDepth,
+      themes: themes.map(t => t.description.substring(0, 60) + '...')
+    });
 
     for (const theme of themes) {
       // Check both: is it different from parent AND still relevant to original seeds?
@@ -533,7 +625,7 @@ class ThroughlineAnalyzer {
       `- "${s.title}"${s.abstract ? '\n  Abstract: ' + s.abstract : ''}`
     ).join('\n\n');
     
-    const prompt = `You are helping trace research lineages. Your job is to be HIGHLY SELECTIVE about which research directions to follow.
+    const prompt = `You are helping trace research lineages. Your job is to be HIGHLY SELECTIVE.
 
 THE USER'S ORIGINAL SEED PAPERS (this is what they care about):
 ${seedContext}
@@ -544,38 +636,41 @@ CANDIDATE NEW DIRECTION: ${candidateTheme}
 
 Should we create a new research thread for the candidate?
 
-BE VERY CONSERVATIVE. Answer "yes" ONLY if ALL of these are true:
-1. The candidate is DIRECTLY relevant to the seed papers' SPECIFIC technical contribution - not just the broad field
-2. A researcher who read the seed papers would specifically want to follow this direction
-3. The candidate represents the seed papers' ideas being extended, applied, or evolved - not a tangentially related technique
-4. The candidate is meaningfully different from the current thread (not redundant)
+Answer "yes" ONLY if ALL of these are true:
+1. The candidate DIRECTLY BUILDS ON specific ideas, methods, or architectures from the seed papers - not just the broad problem domain
+2. The candidate would not exist without the seed papers' specific technical contributions
+3. The candidate is meaningfully different from the current thread (not redundant)
 
-Answer "no" if ANY of these are true:
-- The candidate shares a broad category (e.g., "robotics", "VLAs", "foundation models") but not the seed's specific focus
-- The connection requires multiple hops of reasoning (seed → A → B → candidate)
-- The candidate is about general techniques that COULD apply to the seed's domain but aren't specific to it
-- A researcher focused on the seed papers' specific contribution would say "that's a different research agenda"
+Answer "no" if:
+- The candidate addresses a general research challenge that applies to many systems beyond the seeds
+- The candidate shares the seed's application domain but uses unrelated techniques
+- The candidate is a generic method that COULD be applied to the seed's domain but wasn't specifically developed for it
+- The connection is "both work on X" rather than "this extends that specific idea"
 
-Examples of DRIFT to reject:
-- Seed about "visual navigation" → candidate about "general robot manipulation" (different task domain)
-- Seed about "foundation models for X" → candidate about "finetuning techniques for any model" (too general)
-- Seed about specific architecture → candidate about "datasets for robotics" (infrastructure, not the core idea)
+The test: Would the candidate paper's authors cite the seed papers as direct technical ancestors, or merely as related work in the same field?
 
-When in doubt, answer "no". We want focused lineages, not broad surveys.
+When in doubt, answer "no". We want direct intellectual lineage, not topical neighbors.
 
-Answer only "yes" or "no".`;
+Answer in this format:
+DECISION: yes/no
+REASON: <one sentence explanation>`;
 
     const response = await this.callLLM(prompt);
-    const shouldCreate = response.toLowerCase().includes('yes');
+    const shouldCreate = response.toLowerCase().includes('decision: yes');
+    
+    // Extract reasoning
+    const reasonMatch = response.match(/REASON:\s*(.+)/i);
+    const reason = reasonMatch ? reasonMatch[1].trim() : 'No reason provided';
     
     this.addDebugNode('subthread_check', `Check sub-thread: "${candidateTheme.substring(0, 60)}..."`, {
       parentTheme: parentTheme.substring(0, 100),
       candidateTheme: candidateTheme.substring(0, 100),
       seedPapers: this.seedPapers.map(s => s.title),
-      decision: shouldCreate ? 'CREATE' : 'SKIP'
+      decision: shouldCreate ? 'CREATE' : 'SKIP',
+      reason: reason
     });
     
-    DEBUG_BG.log('Sub-thread check:', shouldCreate ? 'CREATE' : 'SKIP', '-', candidateTheme.substring(0, 50));
+    DEBUG_BG.log('Sub-thread check:', shouldCreate ? 'CREATE' : 'SKIP', '-', candidateTheme.substring(0, 50), '-', reason);
     
     return shouldCreate;
   }
@@ -624,34 +719,18 @@ Return ONLY a JSON array:
       } else {
         DEBUG_BG.log('paperId looks invalid, searching by title...');
         
-        // Retry on rate limit
-        let retries = 0;
-        let searchResponse;
-        while (retries < 3) {
-          searchResponse = await this.callSemanticScholar({
-            url: `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(seedPaper.title)}&fields=paperId&limit=1`,
-            method: 'GET'
-          });
-          
-          if (searchResponse.success) {
-            break;
-          }
-          
-          // If rate limited, wait longer
-          retries++;
-          if (retries < 3) {
-            DEBUG_BG.warn(`Rate limited, waiting 2s before retry ${retries}/3...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-        }
+        // Use robust retry for paper ID lookup
+        const searchResponse = await this.throttledSemanticScholarCall({
+          url: `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(seedPaper.title)}&fields=paperId&limit=1`,
+          method: 'GET'
+        }, `paper search: ${seedPaper.title.substring(0, 30)}...`);
         
-        if (searchResponse.success && searchResponse.data.data && searchResponse.data.data.length > 0) {
+        if (searchResponse.data.data && searchResponse.data.data.length > 0) {
           paperId = searchResponse.data.data[0].paperId;
           this.paperIdCache.set(seedPaper.title, paperId); // Cache it
           DEBUG_BG.log('Found real paperId via search:', paperId);
         } else {
-          DEBUG_BG.error('Could not find paper by title after retries');
-          return [];
+          throw new Error(`Could not find paper in Semantic Scholar: "${seedPaper.title}"`);
         }
       }
     }
@@ -678,12 +757,12 @@ Return ONLY a JSON array:
       const offset = batchIndex * 100;
       DEBUG_BG.log(`Fetching citation batch ${batchIndex + 1} (offset ${offset})...`);
       
-      const citationsResponse = await this.callSemanticScholar({
-        url: `https://api.semanticscholar.org/graph/v1/paper/${paperId}/citations?fields=paperId,title,abstract,year,authors,citationCount&limit=100&offset=${offset}`,
-        method: 'GET'
-      });
-      
-      if (citationsResponse.success) {
+      try {
+        const citationsResponse = await this.throttledSemanticScholarCall({
+          url: `https://api.semanticscholar.org/graph/v1/paper/${paperId}/citations?fields=paperId,title,abstract,year,authors,citationCount&limit=100&offset=${offset}`,
+          method: 'GET'
+        }, `citations batch ${batchIndex + 1}`);
+        
         const batch = (citationsResponse.data.data || []).map(c => c.citingPaper).filter(p => p);
         allCitingPapers.push(...batch);
         DEBUG_BG.log(`Got ${batch.length} citing papers in batch ${batchIndex + 1}`);
@@ -694,12 +773,15 @@ Return ONLY a JSON array:
           break;
         }
         
-        // Small delay between batches to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 500));
         batchIndex++;
-      } else {
-        DEBUG_BG.warn(`Failed to fetch citation batch ${batchIndex + 1}, stopping...`);
-        break;
+      } catch (error) {
+        // If we already have some papers, log warning and continue with what we have
+        if (allCitingPapers.length > 0) {
+          DEBUG_BG.warn(`Failed to fetch citation batch ${batchIndex + 1}, continuing with ${allCitingPapers.length} papers: ${error.message}`);
+          break;
+        }
+        // If no papers yet, this is a hard failure
+        throw error;
       }
     }
     
@@ -715,18 +797,26 @@ Return ONLY a JSON array:
 
     // 2. Get semantic recommendations
     DEBUG_BG.log('Fetching semantic recommendations...');
-    const recsResponse = await this.callSemanticScholar({
-      url: 'https://api.semanticscholar.org/recommendations/v1/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=100',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: {
-        positivePaperIds: [paperId]
+    let recommendedPapers = [];
+    try {
+      const recsResponse = await this.throttledSemanticScholarCall({
+        url: 'https://api.semanticscholar.org/recommendations/v1/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=100',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: {
+          positivePaperIds: [paperId]
+        }
+      }, 'recommendations');
+      
+      recommendedPapers = recsResponse.data.recommendedPapers || [];
+    } catch (error) {
+      // Recommendations are optional - if they fail but we have citations, continue
+      if (allCitingPapers.length > 0) {
+        DEBUG_BG.warn(`Failed to fetch recommendations, continuing with citations only: ${error.message}`);
+      } else {
+        throw error;
       }
-    });
-
-    const recommendedPapers = recsResponse.success
-      ? (recsResponse.data.recommendedPapers || [])
-      : [];
+    }
     
     DEBUG_BG.log('Got', recommendedPapers.length, 'recommendations');
     
@@ -803,7 +893,11 @@ Return ONLY a JSON array:
     DEBUG_BG.log('After year filtering (>=', actualMinYear, '):', papers.length, 'papers');
     
     // Track this search in debug tree
-    this.addDebugNode('search', `Found ${papers.length} papers (${allCitingPapers.length} citing + ${recommendedPapers.length} recommended) for "${seedPaper.title}"`, {
+    this.addDebugNode('search', `SEARCH from "${seedPaper.title.substring(0, 50)}..."`, {
+      stackDepth: this.expansionStack.length,
+      searchPaper: seedPaper.title,
+      reason: `This is the last paper in the thread, so we search for papers that cite it or are semantically similar`,
+      found: `${papers.length} papers (${allCitingPapers.length} citing + ${recommendedPapers.length} recommended)`,
       seedYear: seedPaper.year,
       minYear: actualMinYear,
       afterMerge: allPapers.length,
@@ -889,7 +983,12 @@ Return ONLY a JSON array of indices: [1, 5, 3, ...]`;
         citations: p.citationCount
       }));
       
-      this.addDebugNode('rank', `Ranked ${papers.length} papers for theme: ${threadTheme}`, {
+      this.addDebugNode('rank', `RANK: LLM ranked ${papers.length} papers by relevance to thread theme`, {
+        stackDepth: this.expansionStack.length,
+        theme: threadTheme.substring(0, 100),
+        criteria: 'Same authors/lab → Direct citations → High-impact builds → Recent relevant',
+        inputCount: papers.length,
+        outputCount: ranked.length,
         top10
       });
       
@@ -947,6 +1046,116 @@ Return ONLY the fixed JSON array: [1, 2, 3, ...]`;
     }
   }
 
+  // Ask LLM which of the top-ranked papers are truly relevant to add to thread
+  async selectRelevantPapers(rankedPapers, thread, maxPapers = 5) {
+    if (rankedPapers.length === 0) return [];
+    
+    // Build seed context
+    const seedContext = this.seedPapers.map(s => 
+      `- "${s.title}" by ${(s.authors || []).slice(0, 3).map(a => a.name).join(', ')}`
+    ).join('\n');
+    
+    // Show current thread papers
+    const threadContext = thread.papers.map(p => `- "${p.title}" (${p.year})`).join('\n');
+    
+    // List top candidates (up to 10)
+    const candidatesForLLM = rankedPapers.slice(0, 10);
+    const candidatesList = candidatesForLLM.map((p, i) => 
+      `${i + 1}. "${p.title}" (${p.year})\n   Authors: ${(p.authors || []).slice(0, 3).map(a => a.name).join(', ')}${p.abstract ? '\n   Abstract: ' + p.abstract : ''}`
+    ).join('\n\n');
+    
+    const prompt = `You are selecting papers to add to a research lineage thread.
+
+ORIGINAL SEED PAPERS:
+${seedContext}
+
+THREAD THEME: ${thread.theme}
+
+PAPERS ALREADY IN THREAD:
+${threadContext}
+
+CANDIDATE PAPERS:
+${candidatesList}
+
+Select which papers should be added to continue this research lineage.
+
+STRONG signals to ADD a paper:
+- Same authors or research lab as seed papers (this is the STRONGEST signal - same lab = direct lineage)
+- Direct follow-up work that cites the seeds as a foundation
+- Advances the same research GOAL even if the method/architecture evolves
+- Applies the seed's core ideas to new domains or extends them
+
+It's EXPECTED that successors may:
+- Change methods or techniques while pursuing the same research goals
+- Add new capabilities or combine with other approaches
+- Apply the ideas to new contexts
+
+SKIP papers that are:
+- Unrelated work that happens to cite the seeds
+- Surveys or meta-analyses (not original research advancing the ideas)
+- Work on completely different problems
+
+For each paper, decide: ADD (with reason) or SKIP (with reason).
+
+Return JSON array:
+[
+  {"index": 1, "decision": "ADD", "reason": "Same authors, direct follow-up extending the core method"},
+  {"index": 2, "decision": "SKIP", "reason": "Survey paper, not original research"},
+  ...
+]`;
+
+    const response = await this.callLLM(prompt);
+    
+    try {
+      const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
+      const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+      const decisions = JSON.parse(arrayMatch ? arrayMatch[0] : cleaned);
+      
+      const selected = [];
+      const selectionLog = [];
+      
+      for (const decision of decisions) {
+        const paperIndex = decision.index - 1;
+        if (paperIndex >= 0 && paperIndex < candidatesForLLM.length) {
+          const paper = candidatesForLLM[paperIndex];
+          selectionLog.push({
+            title: paper.title.substring(0, 50),
+            decision: decision.decision,
+            reason: decision.reason
+          });
+          
+          if (decision.decision === 'ADD' && selected.length < maxPapers) {
+            selected.push({
+              ...paper,
+              selectionReason: decision.reason
+            });
+          }
+        }
+      }
+      
+      this.addDebugNode('select_decisions', `LLM selected ${selected.length} of ${candidatesForLLM.length} candidates`, {
+        stackDepth: this.expansionStack.length,
+        decisions: selectionLog
+      });
+      
+      return selected;
+    } catch (error) {
+      DEBUG_BG.error('Failed to parse selection response:', error.message);
+      DEBUG_BG.error('Response was:', response.substring(0, 500));
+      
+      // Fallback: return top 3 with generic reason
+      this.addDebugNode('select_decisions', `Selection parse failed, falling back to top 3`, {
+        stackDepth: this.expansionStack.length,
+        error: error.message
+      });
+      
+      return rankedPapers.slice(0, 3).map(p => ({
+        ...p,
+        selectionReason: 'Fallback: highly ranked by relevance'
+      }));
+    }
+  }
+
   async areThemesDifferent(theme1, theme2) {
     const prompt = `Are these research themes substantially different?
 
@@ -961,6 +1170,11 @@ Answer only "yes" or "no".`;
 
   async callLLM(prompt) {
     DEBUG_BG.log('callLLM called with prompt length:', prompt.length);
+    
+    // Check if stopped before starting
+    if (await this.checkStopped()) {
+      throw new Error('Analysis stopped by user');
+    }
     
     // Retry up to 3 times on network errors
     let lastError;
@@ -987,6 +1201,7 @@ Answer only "yes" or "no".`;
           if (attempt < 3) {
             DEBUG_BG.warn(`LLM call attempt ${attempt} failed, retrying in 2s...`);
             await new Promise(resolve => setTimeout(resolve, 2000));
+            if (await this.checkStopped()) throw new Error('Analysis stopped by user');
           }
         }
       } catch (error) {
@@ -994,6 +1209,7 @@ Answer only "yes" or "no".`;
         if (attempt < 3) {
           DEBUG_BG.warn(`LLM call attempt ${attempt} failed with error, retrying in 2s...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
+          if (await this.checkStopped()) throw new Error('Analysis stopped by user');
         }
       }
     }
@@ -1005,6 +1221,82 @@ Answer only "yes" or "no".`;
     // Call handler directly and await result
     const response = await handleSemanticScholar(data);
     return response;
+  }
+  
+  // Robust Semantic Scholar call with exponential backoff
+  // Will retry for up to ~20 seconds before throwing a hard error
+  async callSemanticScholarWithRetry(data, context = 'API call') {
+    const maxTotalTime = 20000; // 20 seconds total
+    const startTime = Date.now();
+    let attempt = 0;
+    let lastError = null;
+    
+    // Exponential backoff: 1s, 2s, 4s, 8s, 5s (capped)
+    const getDelay = (attempt) => Math.min(1000 * Math.pow(2, attempt), 5000);
+    
+    while (Date.now() - startTime < maxTotalTime) {
+      attempt++;
+      
+      // Check if user stopped
+      if (await this.checkStopped()) {
+        throw new Error('Analysis stopped by user');
+      }
+      
+      // Add delay between requests to avoid hammering the API
+      // First request has no delay, subsequent requests wait based on backoff
+      if (attempt > 1) {
+        const delay = getDelay(attempt - 2);
+        DEBUG_BG.warn(`Semantic Scholar rate limited. Retry ${attempt}, waiting ${delay/1000}s... (${context})`);
+        this.updateProgress(
+          `Rate limited by Semantic Scholar...`,
+          `Waiting ${delay/1000}s before retry ${attempt} (${context})`,
+          null
+        );
+        await new Promise(resolve => setTimeout(resolve, delay));
+        // Check stop after delay
+        if (await this.checkStopped()) {
+          throw new Error('Analysis stopped by user');
+        }
+      }
+      
+      const response = await this.callSemanticScholar(data);
+      
+      if (response.success) {
+        // If we had to retry, slow down future requests
+        if (attempt > 1) {
+          this.rateLimitDelay = Math.min((this.rateLimitDelay || 500) + 500, 3000);
+          DEBUG_BG.log(`Rate limit recovered. Increasing delay between requests to ${this.rateLimitDelay}ms`);
+        }
+        return response;
+      }
+      
+      lastError = response.error || 'Unknown Semantic Scholar error';
+      
+      // Check if it's a rate limit error
+      const isRateLimit = lastError.includes('429') || lastError.includes('Too Many Requests');
+      
+      if (!isRateLimit) {
+        // Non-rate-limit error, throw immediately
+        throw new Error(`Semantic Scholar API error (${context}): ${lastError}`);
+      }
+      
+      // Rate limit - continue retrying
+    }
+    
+    // Exhausted all retries
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    throw new Error(`Semantic Scholar API failed after ${elapsed}s of retries (${context}): ${lastError}`);
+  }
+  
+  // Add delay between Semantic Scholar calls to avoid rate limiting
+  async throttledSemanticScholarCall(data, context = 'API call') {
+    // Apply rate limit delay if we've been rate limited before
+    if (this.rateLimitDelay && this.rateLimitDelay > 0) {
+      await new Promise(resolve => setTimeout(resolve, this.rateLimitDelay));
+      if (await this.checkStopped()) throw new Error('Analysis stopped by user');
+    }
+    
+    return this.callSemanticScholarWithRetry(data, context);
   }
 
   generatePaperId(title) {
@@ -1022,7 +1314,26 @@ Answer only "yes" or "no".`;
 
   updateProgress(message, detail, percent) {
     if (this.progressCallback) {
-      this.progressCallback(message, detail, percent);
+      // Build current thread state for UI
+      const threadSummary = this.expansionStack.map(t => ({
+        theme: t.theme.substring(0, 60) + (t.theme.length > 60 ? '...' : ''),
+        papers: t.papers.map(p => ({
+          title: p.title,
+          year: p.year
+        }))
+      }));
+      
+      // Also include completed threads
+      const completedSummary = this.threads.map(t => ({
+        theme: t.theme.substring(0, 60) + (t.theme.length > 60 ? '...' : ''),
+        papers: t.papers.map(p => ({
+          title: p.title,
+          year: p.year
+        })),
+        completed: true
+      }));
+      
+      this.progressCallback(message, detail, percent, [...threadSummary, ...completedSummary]);
     }
   }
 }
