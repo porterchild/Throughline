@@ -35,6 +35,24 @@ Get OpenRouter key: https://openrouter.ai/keys (free tier available)
 4. Click "Run Analysis" (takes 2-5 minutes)
 5. View threads sorted chronologically
 
+### Optional: Clustering Criteria (Why You Want This Analysis)
+
+Throughline can cluster papers in different ways depending on **why** you're doing the analysis. Some users want lab/author lineages; others care about training scale, datasets, or architectural families. You can provide a short criteria statement that the LLM will use to define and separate research tracks.
+
+- **If you provide criteria**: the LLM uses it as the primary clustering rule.
+- **If you don't**: it defaults to lab/author lineage and shared architectural philosophy.
+
+Examples of criteria statements:
+- "Group by lab/author lineage, and separate each main architectural thread"
+- "Group by training scale and data regime (small curated vs. web-scale)"
+- "Group by methodological paradigm (symbolic, statistical, neural)"
+
+For the standalone CLI:
+
+```
+THROUGHLINE_CLUSTERING_CRITERIA="Group by lab/author lineage, and separate each main architectural thread" node main.js papers.json
+```
+
 ### During Analysis
 
 - **Progress bar** shows current operation

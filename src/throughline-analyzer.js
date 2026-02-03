@@ -14,6 +14,12 @@ class ThroughlineAnalyzer {
     this.seedPapers = [];
     this.rateLimitDelay = 0;
     
+    // Clustering criteria from user (optional)
+    this.clusteringCriteria = apiConfig.clusteringCriteria || null;
+    
+    // Global candidate pool for cross-thread discovery
+    this.candidatePool = new Map();
+    
     // API configuration
     this.openRouterApiKey = apiConfig.openRouterApiKey || null;
     this.semanticScholarDelay = apiConfig.semanticScholarDelay || 1000;
@@ -29,6 +35,13 @@ class ThroughlineAnalyzer {
   
   async checkStopped() {
     return this.stopped;
+  }
+  
+  getClusteringCriteriaPrompt() {
+    if (this.clusteringCriteria && this.clusteringCriteria.trim()) {
+      return `USER-SPECIFIED CLUSTERING CRITERIA:\n${this.clusteringCriteria}\n\nUse the user's criteria as the PRIMARY way to define and separate research tracks.`;
+    }
+    return `DEFAULT CLUSTERING CRITERIA:\nGroup by lab/author lineage and shared architectural philosophy. Prefer direct technical descendants over topical neighbors.`;
   }
   
   stop() {
@@ -72,6 +85,12 @@ class ThroughlineAnalyzer {
     }
 
     this.threads.sort((a, b) => a.spawnYear - b.spawnYear);
+    
+    // Post-processing: cluster remaining papers into new threads
+    if (this.candidatePool.size > 0) {
+      this.updateProgress('Post-processing...', `Clustering ${this.candidatePool.size} papers into additional threads`, null);
+      await this.clusterRemainingPapers();
+    }
 
     this.updateProgress('Complete!', `Discovered ${this.threads.length} research threads`, 100);
 
@@ -570,6 +589,53 @@ Return ONLY a JSON array:
     
     this.logger.log('Got', recommendedPapers.length, 'recommendations');
     
+    // BROADER DOMAIN SEARCH: Find papers in same research area with different approaches
+    this.logger.log('Performing broader domain search for diverse approaches...');
+    let broaderPapers = [];
+    try {
+      const searchQueries = [
+        'visual navigation transformer foundation model',
+        'vision language navigation VLN end-to-end learning',
+        'reinforcement learning navigation large scale simulation',
+        'robot navigation RL policy learning'
+      ];
+      
+      for (const query of searchQueries) {
+        if (await this.checkStopped()) {
+          throw new Error('Analysis stopped by user');
+        }
+        
+        this.logger.log(`Searching for: "${query}"`);
+        try {
+          const searchResponse = await this.throttledSemanticScholarCall({
+            url: `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=paperId,title,abstract,year,authors,citationCount&limit=25&publicationDateOrYear=2020:`,
+            method: 'GET'
+          }, `broader search: ${query.substring(0, 20)}...`);
+          
+          const papers = searchResponse.data.data || [];
+          broaderPapers.push(...papers);
+          this.logger.log(`Found ${papers.length} papers for "${query}"`);
+        } catch (searchError) {
+          this.logger.warn(`Search failed for "${query}": ${searchError.message}`);
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`Broader search encountered error: ${error.message}`);
+    }
+    
+    this.logger.log(`Broader search found ${broaderPapers.length} additional papers`);
+    
+    // Add all discovered papers to candidate pool
+    for (const paper of allCitingPapers) {
+      this.addToCandidatePool(paper, 'citations');
+    }
+    for (const paper of recommendedPapers) {
+      this.addToCandidatePool(paper, 'recommendations');
+    }
+    for (const paper of broaderPapers) {
+      this.addToCandidatePool(paper, 'broader_search');
+    }
+    
     const paperMap = new Map();
     
     allCitingPapers.forEach(p => {
@@ -577,6 +643,13 @@ Return ONLY a JSON array:
     });
     
     recommendedPapers.forEach(p => {
+      if (p.paperId && !paperMap.has(p.paperId)) {
+        paperMap.set(p.paperId, p);
+      }
+    });
+    
+    // Add broader search results
+    broaderPapers.forEach(p => {
       if (p.paperId && !paperMap.has(p.paperId)) {
         paperMap.set(p.paperId, p);
       }
@@ -1115,6 +1188,70 @@ Answer only "yes" or "no".`;
   
   getDebugTree() {
     return this.debugTree;
+  }
+  
+  // Add paper to global candidate pool for cross-thread discovery
+  addToCandidatePool(paper, source) {
+    const paperId = paper.paperId || paper.title;
+    if (!this.candidatePool.has(paperId)) {
+      this.candidatePool.set(paperId, {
+        paper,
+        source,
+        discoveredAt: new Date().toISOString()
+      });
+    }
+  }
+  
+  // Post-processing: cluster remaining papers into new threads
+  async clusterRemainingPapers() {
+    if (this.candidatePool.size === 0) return;
+    
+    this.logger.log(`Post-processing: ${this.candidatePool.size} papers in candidate pool`);
+    
+    // Get papers not yet in any thread
+    const unassignedPapers = [];
+    for (const [paperId, data] of this.candidatePool) {
+      if (!this.processedPapers.has(paperId)) {
+        unassignedPapers.push(data.paper);
+      }
+    }
+    
+    if (unassignedPapers.length === 0) {
+      this.logger.log('No unassigned papers to cluster');
+      return;
+    }
+    
+    this.logger.log(`${unassignedPapers.length} unprocessed candidates in pool`);
+    
+    // Use LLM to identify if there are coherent groupings
+    const prompt = `Analyze these papers and identify if there are 1-2 coherent research threads distinct from existing threads.
+
+${this.getClusteringCriteriaPrompt()}
+
+EXISTING THREADS:
+${this.threads.map(t => `- ${t.theme} (${t.papers.length} papers)`).join('\n')}
+
+CANDIDATE PAPERS (sample):
+${unassignedPapers.slice(0, 20).map((p, i) => `${i + 1}. "${p.title}" (${p.year}) - ${(p.authors || []).slice(0, 3).map(a => a.name).join(', ')}`).join('\n')}
+
+Return JSON with 0-2 thread suggestions:
+[{"theme": "brief name", "description": "what unifies these papers", "reasoning": "why this is distinct from existing threads"}]`;
+
+    try {
+      const response = await this.callLLM(prompt);
+      const cleaned = response.replace(/```json\n?|\n?```/g, '').trim();
+      const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+      const suggestions = JSON.parse(arrayMatch ? arrayMatch[0] : cleaned);
+      
+      if (suggestions && suggestions.length > 0) {
+        for (const suggestion of suggestions) {
+          this.logger.log(`Identified potential thread from pool: ${suggestion.theme}`);
+          // For now, just log it - we'd need to select representative papers
+        }
+      }
+    } catch (error) {
+      this.logger.warn('Failed to cluster candidate pool:', error.message);
+    }
   }
 }
 

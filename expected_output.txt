@@ -1,0 +1,76 @@
+This is the main 'test case' for Throughline to achieve it's purpose. It's to achieve about 70-80% overlap with the results of a research survey I did myself over a month or two:
+
+--------------
+The seed paper:
+    "title": "Neural Topological SLAM for Visual Navigation",
+    "abstract": "This paper studies the problem of image-goal navigation which involves navigating to the location indicated by a goal image in a novel previously unseen environment. To tackle this problem, we design topological representations for space that effectively leverage semantics and afford approximate geometric reasoning. At the heart of our representations are nodes with associated semantic features, that are interconnected using coarse geometric information. We describe supervised learning-based algorithms that can build, maintain and use such representations under noisy actuation. Experimental study in visually and physically realistic simulation suggests that our method builds effective representations that capture structural regularities and efficiently solve long-horizon navigation problems. We observe a relative improvement of more than 50% over existing methods that study this task.",
+    "year": 2020,
+    "authors": [
+      {"name": "Devendra Singh Chaplot"},
+      {"name": "Ruslan Salakhutdinov"},
+      {"name": "Abhinav Gupta"},
+      {"name": "Saurabh Gupta"}
+    ],
+    "nickname": "Chaplot et al., 2020"
+
+--------------
+The expected results of Throughline analysis (expecting to hit most of these papers, with some others mixed in. Again, about 75% overlap is good enough.)
+The first Chaplot paper had it's own lab/philosophy track, and there were two main other tracks that were in the same research space:
+
+
+---
+Track 1: The "Neural SLAM" Track (Topological & Mapping)
+Focus: High-fidelity maps (semantic/metric), long-term memory, and robust environment representation.
+
+Active Neural SLAM (2020):
+Concept: Conceptually closest to your initial spec; explores by minimizing expected free energy.
+Relevance: Foundation for the entire track.
+Neural Topological SLAM (NTSLAM) (Chaplot Track):
+Concept: Unifies spatial and topological representations. Uses a high-level topological map for global goals and a low-level controller for immediate actions.
+Relevance: Topological memory solution.
+FlaRe (2024):
+Concept: Mobile manipulation with language-defined goals. Uses a imitation-trained foundation model as a starting point for RL (15x more efficient).
+Relevance: Shows the shift to RL/Manipulation in this domain.
+GOAT: Go To Any Thing (Chaplot Track):
+Concept: The culmination of the Chaplot track. Combines Semantic maps, instance memory, and multimodal goal-to-location policies.
+Relevance: The "Holy Grail" for Area Confinement. Includes robust semantic maps (e.g., "stay in the row").
+DynaMem / Ok Robot:
+Concept: Extends static manipulation to dynamic environments.
+Relevance: Addresses "stay off the grass" and dynamic obstacles (though you noted NoMaD handles basic dynamics fine).
+
+---
+Track 2: The "Sergey Levine" Track (Embodiment-Agnostic VLA)
+Focus: Foundation models, multimodal goals, and ease of adaptation.
+
+GNM (Goal-conditioned Neural Navigation) (2022):
+Concept: The "Grandfather" of the category. Introduced the ability to navigate using image goals instead of geometric coordinates.
+Relevance: The training objective ("Goal-conditioned navigation") that ViNT, NoMaD, and OmniVLA all use.
+ViNT (Vision Navigation Transformer) (2023):
+Concept: Foundation model for navigation trained on image goals (easy data collection via videos).
+Relevance: Architectural basis. Adaptable to many goal types and building topological maps.
+NoMaD (2023):
+Concept: Extends ViNT. Instead of proposing image subgoals (expensive), it proposes trajectories directly. Adds "undirected exploration" modes.
+Relevance: Strong candidate for Low-Level Control. Better than ViNT at collision avoidance (crucial for seedlings).
+LeLaN (2024):
+Concept: Combines ViNT/NoMaD for language navigation ("Go to the X by the Y").
+Relevance: Solves the "no language-annotated nav dataset" problem.
+OmniVLA (2025) & OmniVLA-Edge:
+Concept: Multimodal goal conditioning (Language, Coordinates, Image). Unifies input spaces.
+Relevance: Your likely pick. Beats competitors on all modalities and is easy to fine-tune.
+MBRA (Model-Based Reannotation) (2025):
+Concept: Uses unlabeled YouTube videos to train navigators via label-attaching.
+Relevance: Source of the datasets for OmniVLA.
+
+---
+Track 3: The "PRIOR Lab" Track (Large-Scale RL & Simulation)
+Focus: "Bitter Lesson" approach—massive scale, RL training, and pure policy learning without explicit maps.
+
+PoliFormer (2024):
+Concept: RL trained at "scale" (150k houses) to navigate to language goals. Uses DINOv2 and recurrent state encoding.
+Relevance: Competes with ViNT/NoMaD but via RL rather than Imitation Learning.
+FLaRe (2024):
+Concept: Mobile manipulation. Starts with an imitation model and fine-tunes with RL.
+Relevance: Shows RL training pipeline (SPOC -> FLaRe).
+RING: Robotic Indoor Navigation Generalist (2025):
+Concept: Trains on 1 Million embodiments. Completely end-to-end, no explicit topological map required.
+Relevance: Highest robustness to embodiment change. Might be too "indoor" focused, but the RL methodology is aggressive.

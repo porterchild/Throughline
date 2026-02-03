@@ -8,6 +8,9 @@
  * Usage:
  *   node main.js <papers-json-file>
  *   node main.js  # uses example papers
+ *
+ * Optional clustering criteria:
+ *   THROUGHLINE_CLUSTERING_CRITERIA="Group by lab/author lineage" node main.js papers.json
  * 
  * Or import as a module:
  *   const { analyzePapers } = require('./main.js');
@@ -73,6 +76,7 @@ async function analyzePapers(papers, apiKey, options = {}) {
     openRouterApiKey: apiKey,
     maxThreads: options.maxThreads || 5,
     maxPapersPerThread: options.maxPapersPerThread || 10,
+    clusteringCriteria: options.clusteringCriteria || process.env.THROUGHLINE_CLUSTERING_CRITERIA || null,
     logger: {
       log: (...args) => console.log('[Throughline]', ...args),
       error: (...args) => console.error('[Throughline]', ...args),
