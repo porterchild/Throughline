@@ -321,7 +321,10 @@ class ThroughlineAnalyzer {
           authors: seedPaper.authors || [{ name: seedPaper.nickname }],
           year: seedPaper.year || new Date().getFullYear()
         },
-        papers: [seedPaper],
+        papers: [{
+          ...seedPaper,
+          selectionReason: 'Seed paper - starting point for this research thread'
+        }],
         subThreads: []
       };
 
@@ -504,7 +507,7 @@ class ThroughlineAnalyzer {
           
           this.addDebugNode('select', `ADD: "${paper.title}"`, {
             year: paper.year,
-            authors: (paper.authors || []).slice(0, 2).map(a => a.name).join(', '),
+            authors: (paper.authors || []).slice(0, 5).map(a => a.name).join(', '),
             citations: paper.citationCount,
             whySelected: paper.selectionReason || 'Selected by LLM',
             threadTheme: thread.theme.substring(0, 80),
@@ -606,7 +609,10 @@ class ThroughlineAnalyzer {
             authors: paper.authors,
             year: paper.year
           },
-          papers: [paper],
+          papers: [{
+            ...paper,
+            selectionReason: 'Divergent research direction - spawned new sub-thread'
+          }],
           subThreads: []
         };
 
@@ -662,9 +668,9 @@ REASON: <one sentence explanation>`;
     const reasonMatch = response.match(/REASON:\s*(.+)/i);
     const reason = reasonMatch ? reasonMatch[1].trim() : 'No reason provided';
     
-    this.addDebugNode('subthread_check', `Check sub-thread: "${candidateTheme.substring(0, 60)}..."`, {
-      parentTheme: parentTheme.substring(0, 100),
-      candidateTheme: candidateTheme.substring(0, 100),
+    this.addDebugNode('subthread_check', `Check sub-thread: "${candidateTheme}"`, {
+      parentTheme: parentTheme,
+      candidateTheme: candidateTheme,
       seedPapers: this.seedPapers.map(s => s.title),
       decision: shouldCreate ? 'CREATE' : 'SKIP',
       reason: reason
@@ -979,7 +985,7 @@ Return ONLY a JSON array of indices: [1, 5, 3, ...]`;
       const top10 = ranked.slice(0, 10).map(p => ({
         title: p.title,
         year: p.year,
-        authors: (p.authors || []).slice(0, 2).map(a => a.name).join(', '),
+        authors: (p.authors || []).slice(0, 5).map(a => a.name).join(', '),
         citations: p.citationCount
       }));
       
@@ -1026,7 +1032,7 @@ Return ONLY the fixed JSON array: [1, 2, 3, ...]`;
           top10: ranked.slice(0, 10).map(p => ({
             title: p.title,
             year: p.year,
-            authors: (p.authors || []).slice(0, 2).map(a => a.name).join(', '),
+            authors: (p.authors || []).slice(0, 5).map(a => a.name).join(', '),
             citations: p.citationCount
           }))
         });
@@ -1052,7 +1058,7 @@ Return ONLY the fixed JSON array: [1, 2, 3, ...]`;
     
     // Build seed context
     const seedContext = this.seedPapers.map(s => 
-      `- "${s.title}" by ${(s.authors || []).slice(0, 3).map(a => a.name).join(', ')}`
+      `- "${s.title}" by ${(s.authors || []).slice(0, 5).map(a => a.name).join(', ')}`
     ).join('\n');
     
     // Show current thread papers
@@ -1061,7 +1067,7 @@ Return ONLY the fixed JSON array: [1, 2, 3, ...]`;
     // List top candidates (up to 10)
     const candidatesForLLM = rankedPapers.slice(0, 10);
     const candidatesList = candidatesForLLM.map((p, i) => 
-      `${i + 1}. "${p.title}" (${p.year})\n   Authors: ${(p.authors || []).slice(0, 3).map(a => a.name).join(', ')}${p.abstract ? '\n   Abstract: ' + p.abstract : ''}`
+      `${i + 1}. "${p.title}" (${p.year})\n   Authors: ${(p.authors || []).slice(0, 5).map(a => a.name).join(', ')}${p.abstract ? '\n   Abstract: ' + p.abstract : ''}`
     ).join('\n\n');
     
     const prompt = `You are selecting papers to add to a research lineage thread.
@@ -1119,7 +1125,7 @@ Return JSON array:
         if (paperIndex >= 0 && paperIndex < candidatesForLLM.length) {
           const paper = candidatesForLLM[paperIndex];
           selectionLog.push({
-            title: paper.title.substring(0, 50),
+            title: paper.title,
             decision: decision.decision,
             reason: decision.reason
           });
@@ -1314,22 +1320,30 @@ Answer only "yes" or "no".`;
 
   updateProgress(message, detail, percent) {
     if (this.progressCallback) {
-      // Build current thread state for UI
+      // Build current thread state for UI - send full thread structure
       const threadSummary = this.expansionStack.map(t => ({
-        theme: t.theme.substring(0, 60) + (t.theme.length > 60 ? '...' : ''),
+        theme: t.theme,
+        spawnPaper: t.spawnPaper,
+        spawnYear: t.spawnYear,
         papers: t.papers.map(p => ({
           title: p.title,
-          year: p.year
-        }))
+          year: p.year,
+          selectionReason: p.selectionReason
+        })),
+        subThreads: []
       }));
       
       // Also include completed threads
       const completedSummary = this.threads.map(t => ({
-        theme: t.theme.substring(0, 60) + (t.theme.length > 60 ? '...' : ''),
+        theme: t.theme,
+        spawnPaper: t.spawnPaper,
+        spawnYear: t.spawnYear,
         papers: t.papers.map(p => ({
           title: p.title,
-          year: p.year
+          year: p.year,
+          selectionReason: p.selectionReason
         })),
+        subThreads: t.subThreads || [],
         completed: true
       }));
       

@@ -665,6 +665,33 @@ function loadTraceScreen() {
   // This function is no longer needed - analysis starts automatically
 }
 
+// Shared function to render a single thread
+function renderThread(thread) {
+  return `
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
+      <div style="font-weight: 600; margin-bottom: 8px;">${escapeHtml(thread.theme)}</div>
+      <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
+        From: ${escapeHtml(thread.spawnPaper.title)} (${thread.spawnYear})
+      </div>
+      ${thread.papers.map((p, idx) => `
+        <div style="font-size: 12px; padding: 8px; background: #f9fafb; margin: 4px 0; border-radius: 4px;">
+          <div style="margin-bottom: 4px;">
+            <span style="background: #6366f1; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-right: 6px;">${p.year || '?'}</span>
+            ${escapeHtml(p.title)}
+          </div>
+          ${p.selectionReason ? `<div style="font-size: 11px; color: #6b7280; font-style: italic; padding-left: 42px;">↳ ${escapeHtml(p.selectionReason)}</div>` : ''}
+        </div>
+      `).join('')}
+      ${thread.subThreads && thread.subThreads.length > 0 ? `
+        <div style="margin-top: 12px; padding-left: 12px; border-left: 2px solid #e5e7eb;">
+          <div style="font-size: 11px; color: #666; margin-bottom: 8px;">SUB-THREADS</div>
+          ${thread.subThreads.map(st => renderThread(st)).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
 // Update live threads display during analysis
 function updateThreadsDisplay(threads) {
   const container = document.getElementById('progress-threads');
@@ -679,29 +706,7 @@ function updateThreadsDisplay(threads) {
   const wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
   
   let html = '<div style="font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 8px;">Building threads...</div>';
-  
-  threads.forEach((thread, i) => {
-    const isCompleted = thread.completed;
-    const statusIcon = isCompleted ? '✓' : '🔄';
-    const statusColor = isCompleted ? '#10b981' : '#6366f1';
-    
-    html += `
-      <div style="background: ${isCompleted ? '#f0fdf4' : '#f5f3ff'}; border: 1px solid ${isCompleted ? '#bbf7d0' : '#c7d2fe'}; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-          <span style="color: ${statusColor};">${statusIcon}</span>
-          <span style="font-size: 11px; font-weight: 600; color: #374151;">${escapeHtml(thread.theme)}</span>
-        </div>
-        <div style="padding-left: 20px;">
-          ${thread.papers.map((p, j) => `
-            <div style="font-size: 10px; color: #6b7280; padding: 2px 0; display: flex; align-items: center; gap: 4px;">
-              <span style="background: #6366f1; color: white; padding: 1px 4px; border-radius: 2px; font-size: 9px;">${p.year || '?'}</span>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.title.substring(0, 50))}${p.title.length > 50 ? '...' : ''}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  });
+  html += threads.map(thread => renderThread(thread)).join('');
   
   container.innerHTML = html;
   
@@ -728,35 +733,7 @@ function displayResults(threads) {
         <button id="rerun-btn" style="background: #6366f1; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">🔄 Re-run Analysis</button>
       </div>
     </div>
-  ` + threads.map(thread => `
-    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
-      <div style="font-weight: 600; margin-bottom: 8px;">${escapeHtml(thread.theme)}</div>
-      <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
-        From: ${escapeHtml(thread.spawnPaper.title)} (${thread.spawnYear})
-      </div>
-      ${thread.papers.map(p => `
-        <div style="font-size: 12px; padding: 8px; background: #f9fafb; margin: 4px 0; border-radius: 4px;">
-          <span style="background: #6366f1; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-right: 6px;">${p.year}</span>
-          ${escapeHtml(p.title)}
-        </div>
-      `).join('')}
-      ${thread.subThreads.length > 0 ? `
-        <div style="margin-top: 12px; padding-left: 12px; border-left: 2px solid #e5e7eb;">
-          <div style="font-size: 11px; color: #666; margin-bottom: 8px;">SUB-THREADS</div>
-          ${thread.subThreads.map(st => `
-            <div style="font-size: 12px; margin-bottom: 8px;">
-              <strong>${escapeHtml(st.theme)}</strong>
-              ${st.papers.map(p => `
-                <div style="padding: 4px 0; font-size: 11px;">
-                  <span style="color: #6366f1;">${p.year}</span> ${escapeHtml(p.title)}
-                </div>
-              `).join('')}
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-    </div>
-  `).join('');
+  ` + threads.map(thread => renderThread(thread)).join('');
   
   results.style.display = 'block';
   
