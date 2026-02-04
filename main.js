@@ -74,8 +74,8 @@ async function analyzePapers(papers, apiKey, options = {}) {
 
   const config = {
     openRouterApiKey: apiKey,
-    maxThreads: options.maxThreads || 5,
-    maxPapersPerThread: options.maxPapersPerThread || 10,
+    maxThreads: options.maxThreads || 6,
+    maxPapersPerThread: options.maxPapersPerThread || 12,
     clusteringCriteria: options.clusteringCriteria || process.env.THROUGHLINE_CLUSTERING_CRITERIA || null,
     logger: {
       log: (...args) => console.log('[Throughline]', ...args),

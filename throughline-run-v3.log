@@ -1,0 +1,1082 @@
+Using API key from .env file
+Loaded 1 papers from papers.json
+Starting analysis of 1 seed papers...
+Starting analysis... - 0.0%
+Analyzing: Neural Topological SLAM for Visual Navigation...
+  Extracting research themes with LLM
+[Throughline] callLLM called with prompt length: 1952
+
+Expanding: Georgia Tech embodied AI lab lineage focusing on t...
+  Searching papers from 2020 → present
+
+  Active threads: 1
+[Throughline] expandThreadToPresent - starting from year: 2020 to 2026
+[Throughline] Expansion stack depth: 1
+
+Searching Semantic Scholar...
+  Finding papers from 2020+ using citations + embeddings
+
+  Active threads: 1
+[Throughline] fetchCitationsAndRecommendations - original paperId: undefined
+[Throughline] fetchCitationsAndRecommendations - paper title: Neural Topological SLAM for Visual Navigation
+[Throughline] paperId looks invalid, searching by title...
+[Throughline] Found real paperId via search: 5c378ca2e4699eaf763de9f8ec02ca89860bb1cf
+[Throughline] Fetching citation batch 1 (offset 0)...
+[Throughline] Got 100 citing papers in batch 1
+[Throughline] Fetching citation batch 2 (offset 100)...
+[Throughline] Got 100 citing papers in batch 2
+[Throughline] Fetching citation batch 3 (offset 200)...
+[Throughline] Got 100 citing papers in batch 3
+[Throughline] Fetching citation batch 4 (offset 300)...
+[Throughline] Got 47 citing papers in batch 4
+[Throughline] Reached end of citations, stopping pagination
+[Throughline] Total citing papers across all batches: 347
+[Throughline] Citing papers year distribution: {"2020":24,"2021":49,"2022":75,"2023":65,"2024":62,"2025":65,"2026":3,"unknown":4}
+[Throughline] Fetching semantic recommendations...
+[Throughline] Got 100 recommendations
+[Throughline] Performing broader domain search for diverse approaches...
+[Throughline] Searching for: "visual navigation transformer foundation model"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 5, waiting 5s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 5 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 1000ms
+[Throughline] Found 25 papers for "visual navigation transformer foundation model"
+[Throughline] Searching for: "vision language navigation VLN end-to-end learning"
+[Throughline] Found 25 papers for "vision language navigation VLN end-to-end learning"
+[Throughline] Searching for: "reinforcement learning navigation large scale simulation"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 1500ms
+[Throughline] Found 25 papers for "reinforcement learning navigation large scale simulation"
+[Throughline] Searching for: "robot navigation RL policy learning"
+[Throughline] Found 25 papers for "robot navigation RL policy learning"
+[Throughline] Broader search found 100 additional papers
+[Throughline] After merging:  537 unique papers
+[Throughline] Year distribution: {"2020":28,"2021":54,"2022":81,"2023":76,"2024":79,"2025":166,"2026":45,"unknown":8}
+[Throughline] Quality filter: 537 → 476 papers (removed 61 old low-citation papers)
+[Throughline] After quality filter, year distribution: {"2020":21,"2021":41,"2022":60,"2023":56,"2024":79,"2025":166,"2026":45,"unknown":8}
+[Throughline] After year filtering (>= 2019 ): 468 papers
+[Throughline] expandThreadToPresent - got 468 related papers
+[Throughline] rankByThreadRelevance - input: 468 papers for theme: Georgia Tech embodied AI lab lineage focusing on t
+[Throughline] Prompt length: 702969 characters
+[Throughline] callLLM called with prompt length: 702969
+[Throughline] LLM returned incomplete array, auto-closing...
+[Throughline] Cleaned response (first 200 chars): [11,69,26,73,31,13,7,12,127,161,85,220,89,35]
+[Throughline] rankByThreadRelevance - output: 14 ranked papers
+[Throughline] expandThreadToPresent - ranked papers: 14
+
+Ranking 468 papers...
+  Using LLM to rank relevance to thread
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 15416
+[Throughline] expandThreadToPresent complete - thread now has 1 papers
+[Throughline] Thread after expansion: Georgia Tech embodied AI lab lineage focusing on topological graph representations with semantic node features and coarse geometric edges for supervised SLAM in visual navigation tasks - papers: 1 subthreads: 0
+[Throughline] Skipping thread (only 1 paper, no subthreads)
+
+Expanding: Model-based image-goal navigation track emphasizin...
+  Searching papers from 2020 → present
+
+  Active threads: 1
+[Throughline] expandThreadToPresent - starting from year: 2020 to 2026
+[Throughline] Expansion stack depth: 1
+
+Searching Semantic Scholar...
+  Finding papers from 2020+ using citations + embeddings
+
+  Active threads: 1
+[Throughline] fetchCitationsAndRecommendations - original paperId: undefined
+[Throughline] fetchCitationsAndRecommendations - paper title: Neural Topological SLAM for Visual Navigation
+[Throughline] Using cached paperId: 5c378ca2e4699eaf763de9f8ec02ca89860bb1cf
+[Throughline] Fetching citation batch 1 (offset 0)...
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (citations batch 1)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (citations batch 1)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 2000ms
+[Throughline] Got 100 citing papers in batch 1
+[Throughline] Fetching citation batch 2 (offset 100)...
+[Throughline] Got 100 citing papers in batch 2
+[Throughline] Fetching citation batch 3 (offset 200)...
+[Throughline] Got 100 citing papers in batch 3
+[Throughline] Fetching citation batch 4 (offset 300)...
+[Throughline] Got 47 citing papers in batch 4
+[Throughline] Reached end of citations, stopping pagination
+[Throughline] Total citing papers across all batches: 347
+[Throughline] Citing papers year distribution: {"2020":24,"2021":49,"2022":75,"2023":65,"2024":62,"2025":65,"2026":3,"unknown":4}
+[Throughline] Fetching semantic recommendations...
+[Throughline] Got 100 recommendations
+[Throughline] Performing broader domain search for diverse approaches...
+[Throughline] Searching for: "visual navigation transformer foundation model"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 2500ms
+[Throughline] Found 25 papers for "visual navigation transformer foundation model"
+[Throughline] Searching for: "vision language navigation VLN end-to-end learning"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "vision language navigation VLN end-to-end learning"
+[Throughline] Searching for: "reinforcement learning navigation large scale simulation"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 5, waiting 5s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 5 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 6, waiting 5s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 6 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 7, waiting 5s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 7 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Search failed for "reinforcement learning navigation large scale simulation": Semantic Scholar API failed after 22.7s of retries (broader search: reinforcement learni...): Semantic Scholar API error: 429
+[Throughline] Searching for: "robot navigation RL policy learning"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: robot navigation RL ...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: robot navigation RL ...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: robot navigation RL ...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: robot navigation RL ...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: robot navigation RL ...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: robot navigation RL ...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "robot navigation RL policy learning"
+[Throughline] Broader search found 75 additional papers
+[Throughline] After merging:  515 unique papers
+[Throughline] Year distribution: {"2020":27,"2021":51,"2022":79,"2023":70,"2024":76,"2025":159,"2026":45,"unknown":8}
+[Throughline] Quality filter: 515 → 456 papers (removed 59 old low-citation papers)
+[Throughline] After quality filter, year distribution: {"2020":20,"2021":39,"2022":58,"2023":51,"2024":76,"2025":159,"2026":45,"unknown":8}
+[Throughline] After year filtering (>= 2019 ): 448 papers
+[Throughline] expandThreadToPresent - got 448 related papers
+[Throughline] rankByThreadRelevance - input: 448 papers for theme: Model-based image-goal navigation track emphasizin
+[Throughline] Prompt length: 671751 characters
+[Throughline] callLLM called with prompt length: 671751
+[Throughline] LLM returned incomplete array, auto-closing...
+[Throughline] Cleaned response (first 200 chars): [11, 25, 30, 66, 12, 70, 156, 122, 13, 7, 86, 34, 38, 87, 3, 45, 102, 108, 65, 26, 91, 115, 31, 100, 144, 56, 27, 16, 25]
+[Throughline] rankByThreadRelevance - output: 29 ranked papers
+[Throughline] expandThreadToPresent - ranked papers: 29
+
+Ranking 448 papers...
+  Using LLM to rank relevance to thread
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 15400
+[Throughline] Adding paper to thread: Object Goal Navigation using Goal-Oriented Semantic Exploration 2020
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (2 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: Object Goal Navigation using Goal-Oriented Semanti...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2166
+[Throughline] callLLM called with prompt length: 2810
+[Throughline] Sub-thread check: SKIP - FAIR Habitat lab lineage: Modular episodic semanti - The candidate focuses on FAIR Habitat's modular episodic semantic mapping for ObjectNav (a distinct task from image-goal navigation) with efficient exploration, sharing only the broad simulation-based navigation domain rather than directly building on the seed's specific neural topological SLAM architecture.
+[Throughline] callLLM called with prompt length: 2763
+[Throughline] Sub-thread check: SKIP - CMU robotics lab lineage: Goal-conditioned modular - The candidate focuses on goal-conditioned modular systems, sim-to-real transfer, and ObjectNav deployment from CMU, which shares the broad navigation domain but does not directly build on or depend on the seed's specific neural topological SLAM representations and methods.
+[Throughline] callLLM called with prompt length: 2813
+[Throughline] Sub-thread check: SKIP - Visual reasoning lab lineage (Parikh/Batra/Efros): - The candidate relies on VQA/scene graph priors for semantic scene understanding from a distinct lab lineage (Parikh/Batra/Efros), without directly building on or requiring the seed's specific topological SLAM representations, node semantics, or map-building methods.
+
+Searching Semantic Scholar...
+  Finding papers from 2020+ using citations + embeddings
+
+  Active threads: 1
+[Throughline] fetchCitationsAndRecommendations - original paperId: 62516303058a1322450b58e4cd778ab873b5e531
+[Throughline] fetchCitationsAndRecommendations - paper title: Object Goal Navigation using Goal-Oriented Semantic Exploration
+[Throughline] Fetching citation batch 1 (offset 0)...
+[Throughline] Got 100 citing papers in batch 1
+[Throughline] Fetching citation batch 2 (offset 100)...
+[Throughline] Got 100 citing papers in batch 2
+[Throughline] Fetching citation batch 3 (offset 200)...
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (citations batch 3)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (citations batch 3)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Got 100 citing papers in batch 3
+[Throughline] Fetching citation batch 4 (offset 300)...
+[Throughline] Got 100 citing papers in batch 4
+[Throughline] Fetching citation batch 5 (offset 400)...
+[Throughline] Got 100 citing papers in batch 5
+[Throughline] Fetching citation batch 6 (offset 500)...
+[Throughline] Got 100 citing papers in batch 6
+[Throughline] Fetching citation batch 7 (offset 600)...
+[Throughline] Got 48 citing papers in batch 7
+[Throughline] Reached end of citations, stopping pagination
+[Throughline] Total citing papers across all batches: 648
+[Throughline] Citing papers year distribution: {"2019":1,"2020":14,"2021":74,"2022":106,"2023":130,"2024":143,"2025":165,"2026":7,"unknown":8}
+[Throughline] Fetching semantic recommendations...
+[Throughline] Got 100 recommendations
+[Throughline] Performing broader domain search for diverse approaches...
+[Throughline] Searching for: "visual navigation transformer foundation model"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 5, waiting 5s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 5 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 6, waiting 5s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 6 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 7, waiting 5s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 7 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Search failed for "visual navigation transformer foundation model": Semantic Scholar API failed after 22.7s of retries (broader search: visual navigation tr...): Semantic Scholar API error: 429
+[Throughline] Searching for: "vision language navigation VLN end-to-end learning"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 5, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 5 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 6, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 6 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 7, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 7 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Search failed for "vision language navigation VLN end-to-end learning": Semantic Scholar API failed after 22.8s of retries (broader search: vision language navi...): Semantic Scholar API error: 429
+[Throughline] Searching for: "reinforcement learning navigation large scale simulation"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "reinforcement learning navigation large scale simulation"
+[Throughline] Searching for: "robot navigation RL policy learning"
+[Throughline] Found 25 papers for "robot navigation RL policy learning"
+[Throughline] Broader search found 50 additional papers
+[Throughline] After merging:  783 unique papers
+[Throughline] Year distribution: {"2019":1,"2020":16,"2021":77,"2022":108,"2023":140,"2024":153,"2025":234,"2026":43,"unknown":11}
+[Throughline] Quality filter: 783 → 695 papers (removed 88 old low-citation papers)
+[Throughline] After quality filter, year distribution: {"2019":1,"2020":14,"2021":57,"2022":86,"2023":96,"2024":153,"2025":234,"2026":43,"unknown":11}
+[Throughline] After year filtering (>= 2019 ): 684 papers
+[Throughline] expandThreadToPresent - got 684 related papers
+[Throughline] rankByThreadRelevance - input: 684 papers for theme: Model-based image-goal navigation track emphasizin
+[Throughline] Prompt length: 990885 characters
+[Throughline] callLLM called with prompt length: 990885
+[Throughline] Cleaned response (first 200 chars): [10, 21, 22, 25, 30, 80, 86, 11, 32, 33]
+[Throughline] rankByThreadRelevance - output: 10 ranked papers
+[Throughline] expandThreadToPresent - ranked papers: 10
+
+Ranking 684 papers...
+  Using LLM to rank relevance to thread
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 16356
+[Throughline] Adding paper to thread: SEAL: Self-supervised Embodied Active Learning using Exploration and 3D Consistency 2021
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (3 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: SEAL: Self-supervised Embodied Active Learning usi...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2191
+[Throughline] callLLM called with prompt length: 2822
+[Throughline] Sub-thread check: SKIP - Meta FAIR embodied AI lineage focusing on self-sup - The candidate focuses on self-supervised perception adaptation and active exploration for ObjectNav, which shares the broad embodied navigation domain and simulation environments but does not directly build on or require the seed's specific neural topological SLAM representations, semantic-geometric nodes, or supervised map-building techniques.
+[Throughline] callLLM called with prompt length: 2771
+[Throughline] Sub-thread check: SKIP - 3D semantic mapping and spatio-temporal consistenc - The candidate focuses on general 3D semantic mapping and pseudo-labeling techniques for robotics that address broad challenges in annotation efficiency, without directly building on or requiring the seed paper's specific neural topological SLAM with semantic-graph representations for image-goal navigation.
+[Throughline] callLLM called with prompt length: 2756
+[Throughline] Sub-thread check: SKIP - Intrinsic motivation rewards derived from 3D maps  - The candidate relies on 3D maps and intrinsic motivation rewards for exploration in active learning, which are unrelated to the seed's specific topological representations with semantic nodes and coarse geometry for model-based image-goal navigation, making it a topical neighbor rather than a direct extension.
+[Throughline] Adding paper to thread: Differentiable Spatial Planning using Transformers 2021
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (4 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: Differentiable Spatial Planning using Transformers...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2095
+[Throughline] callLLM called with prompt length: 2790
+[Throughline] Sub-thread check: SKIP - NYU/Pinto lab lineage of transformer-based global  - The candidate relies on transformer architectures for differentiable global planning from demonstrations, which does not directly build on or require the seed paper's specific topological SLAM representations with semantic nodes and coarse geometry, representing a distinct architectural lineage rather than a technical extension.
+[Throughline] callLLM called with prompt length: 2819
+[Throughline] Sub-thread check: SKIP - End-to-end perception-planning frameworks integrat - The candidate emphasizes end-to-end perception-planning with differentiable planners and OOD generalization, which does not directly build on or require the seed's specific neural topological SLAM representations and map-building methods, representing an unrelated architectural approach rather than a direct extension.
+[Throughline] callLLM called with prompt length: 2793
+[Throughline] Sub-thread check: SKIP - Data-driven differentiable planning advancing beyo - The candidate focuses on data-driven differentiable planning beyond convolutional methods for manipulation and navigation, which does not directly build on or require the seed's specific neural topological SLAM representations with semantic nodes and coarse geometry, representing a distinct architectural thread rather than a direct extension.
+[Throughline] Adding paper to thread: FILM: Following Instructions in Language with Modular Methods 2021
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (5 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: FILM: Following Instructions in Language with Modu...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2180
+[Throughline] callLLM called with prompt length: 2984
+[Throughline] Sub-thread check: SKIP - Modular architectures with explicit semantic maps  - The candidate focuses on embodied instruction following with modular architectures from distinct labs (e.g., FILM/Mila lineage), sharing only broad ideas like semantic maps but not directly building on or requiring the seed's specific neural topological SLAM for image-goal navigation.
+[Throughline] callLLM called with prompt length: 2861
+[Throughline] Sub-thread check: SKIP - Semantic search policies for goal-directed explora - The candidate shifts to language-guided tasks with semantic search policies and vision-language fusion on classical planning, without directly building on the seed's specific neural topological SLAM representations or supervised map-building methods for image-goal navigation.
+[Throughline] callLLM called with prompt length: 2829
+[Throughline] Sub-thread check: SKIP - Hybrid modular systems augmented with low-level la - The candidate focuses on hybrid modular systems with low-level language instructions from instruction-following labs, which does not directly build on or require the seed's specific topological SLAM representations and semantic-geometric maps for image-goal navigation.
+[Throughline] Adding paper to thread: Navigating to objects in the real world 2022
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (6 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: Navigating to objects in the real world...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2791
+[Throughline] callLLM called with prompt length: 2869
+[Throughline] Sub-thread check: SKIP - Classical geometric navigation: Builds explicit ma - The candidate relies on classical geometric mapping and point-goal planning from depth sensors without any learning or topological representations, sharing only the broad navigation domain with the seed's neural topological SLAM but not directly building on its specific ideas, methods, or architectures.
+[Throughline] callLLM called with prompt length: 2855
+[Throughline] Sub-thread check: SKIP - Modular learning navigation: Augments classical pi - The candidate emphasizes modular augmentation of classical pipelines for sim-to-real transfer in a distinct BAIR/Levine/Abbeel lineage, without directly building on or requiring the seed's specific neural topological SLAM representations and methods.
+[Throughline] callLLM called with prompt length: 2820
+[Throughline] Sub-thread check: SKIP - End-to-end learning navigation: Direct mapping fro - The candidate pursues end-to-end RL policies that directly contrast with the seed's model-based topological SLAM and map-building approach, sharing only the broad image-goal navigation domain without building on its specific semantic-topological representations or methods.
+
+Searching Semantic Scholar...
+  Finding papers from 2022+ using citations + embeddings
+
+  Active threads: 1
+[Throughline] fetchCitationsAndRecommendations - original paperId: f403f84183be8660c1c7aa91c98cea74f39d3924
+[Throughline] fetchCitationsAndRecommendations - paper title: Navigating to objects in the real world
+[Throughline] Fetching citation batch 1 (offset 0)...
+[Throughline] Got 100 citing papers in batch 1
+[Throughline] Fetching citation batch 2 (offset 100)...
+[Throughline] Got 85 citing papers in batch 2
+[Throughline] Reached end of citations, stopping pagination
+[Throughline] Total citing papers across all batches: 185
+[Throughline] Citing papers year distribution: {"2022":3,"2023":37,"2024":70,"2025":68,"2026":3,"unknown":4}
+[Throughline] Fetching semantic recommendations...
+[Throughline] Got 100 recommendations
+[Throughline] Performing broader domain search for diverse approaches...
+[Throughline] Searching for: "visual navigation transformer foundation model"
+[Throughline] Found 25 papers for "visual navigation transformer foundation model"
+[Throughline] Searching for: "vision language navigation VLN end-to-end learning"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "vision language navigation VLN end-to-end learning"
+[Throughline] Searching for: "reinforcement learning navigation large scale simulation"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "reinforcement learning navigation large scale simulation"
+[Throughline] Searching for: "robot navigation RL policy learning"
+[Throughline] Found 25 papers for "robot navigation RL policy learning"
+[Throughline] Broader search found 100 additional papers
+[Throughline] After merging:  375 unique papers
+[Throughline] Year distribution: {"2020":4,"2021":6,"2022":9,"2023":47,"2024":87,"2025":177,"2026":36,"unknown":9}
+[Throughline] Quality filter: 375 → 361 papers (removed 14 old low-citation papers)
+[Throughline] After quality filter, year distribution: {"2020":4,"2021":5,"2022":8,"2023":35,"2024":87,"2025":177,"2026":36,"unknown":9}
+[Throughline] After year filtering (>= 2021 ): 348 papers
+[Throughline] expandThreadToPresent - got 348 related papers
+[Throughline] rankByThreadRelevance - input: 348 papers for theme: Model-based image-goal navigation track emphasizin
+[Throughline] Prompt length: 521940 characters
+[Throughline] callLLM called with prompt length: 521940
+[Throughline] Cleaned response (first 200 chars): [21,39,31,77,23,35,4,12,30,85,37,28,59,8,18,34,10,7,58,40]
+[Throughline] rankByThreadRelevance - output: 20 ranked papers
+[Throughline] expandThreadToPresent - ranked papers: 20
+
+Ranking 348 papers...
+  Using LLM to rank relevance to thread
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 17537
+[Throughline] Adding paper to thread: GOAT: GO to Any Thing 2023
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (7 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: GOAT: GO to Any Thing...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2579
+Failed to parse themes: SyntaxError: Unexpected token # in JSON at position 1059
+    at JSON.parse (<anonymous>)
+    at ThroughlineAnalyzer.identifyResearchThemes (/home/sol/projects/Throughline/src/throughline-analyzer.js:487:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async ThroughlineAnalyzer.detectResearchDivergences (/home/sol/projects/Throughline/src/throughline-analyzer.js:358:20)
+    at async ThroughlineAnalyzer.expandThreadToPresent (/home/sol/projects/Throughline/src/throughline-analyzer.js:303:13)
+    at async ThroughlineAnalyzer.extractThreadsFromSeed (/home/sol/projects/Throughline/src/throughline-analyzer.js:124:7)
+    at async ThroughlineAnalyzer.traceResearchLineages (/home/sol/projects/Throughline/src/throughline-analyzer.js:75:7)
+    at async analyzePapers (/home/sol/projects/Throughline/main.js:108:21)
+    at async main (/home/sol/projects/Throughline/main.js:212:19)
+[Throughline] Adding paper to thread: Navigating to Objects Specified by Images 2023
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (8 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: Navigating to Objects Specified by Images...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2034
+[Throughline] callLLM called with prompt length: 2978
+[Throughline] Sub-thread check: SKIP - Modular classical robotics pipelines for image-goa - The candidate relies on classical modular pipelines with off-the-shelf SLAM and feature matching rather than directly extending the seed's specific neural topological representations with semantic features and coarse geometry, making it a topical neighbor rather than a direct technical descendant.
+[Throughline] callLLM called with prompt length: 2874
+[Throughline] Sub-thread check: SKIP - Sim-to-real transferable systems for InstanceImage - The candidate focuses on sim-to-real transfer and robot deployment for InstanceImageNav without referencing or building on the seed's specific neural topological SLAM representations, semantics, or coarse geometry, making it a topical extension rather than a direct intellectual descendant.
+[Throughline] callLLM called with prompt length: 2887
+[Throughline] Sub-thread check: SKIP - Dense feature correspondence methods for egocentri - The candidate relies on dense feature matching with pre-trained encoders like DINO and map projections unrelated to the seed's specific topological representations with semantic node features and coarse geometric SLAM, making it a topical neighbor rather than a direct technical extension.
+
+Searching Semantic Scholar...
+  Finding papers from 2023+ using citations + embeddings
+
+  Active threads: 1
+[Throughline] fetchCitationsAndRecommendations - original paperId: a5d9f2c82fa88611f04a65e248b6223b9fb2a6c3
+[Throughline] fetchCitationsAndRecommendations - paper title: Navigating to Objects Specified by Images
+[Throughline] Fetching citation batch 1 (offset 0)...
+[Throughline] Got 58 citing papers in batch 1
+[Throughline] Reached end of citations, stopping pagination
+[Throughline] Total citing papers across all batches: 58
+[Throughline] Citing papers year distribution: {"2023":6,"2024":23,"2025":27,"2026":1,"unknown":1}
+[Throughline] Fetching semantic recommendations...
+[Throughline] Got 100 recommendations
+[Throughline] Performing broader domain search for diverse approaches...
+[Throughline] Searching for: "visual navigation transformer foundation model"
+[Throughline] Found 25 papers for "visual navigation transformer foundation model"
+[Throughline] Searching for: "vision language navigation VLN end-to-end learning"
+[Throughline] Found 25 papers for "vision language navigation VLN end-to-end learning"
+[Throughline] Searching for: "reinforcement learning navigation large scale simulation"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "reinforcement learning navigation large scale simulation"
+[Throughline] Searching for: "robot navigation RL policy learning"
+[Throughline] Found 25 papers for "robot navigation RL policy learning"
+[Throughline] Broader search found 100 additional papers
+[Throughline] After merging:  250 unique papers
+[Throughline] Year distribution: {"2020":4,"2021":6,"2022":6,"2023":17,"2024":40,"2025":133,"2026":38,"unknown":6}
+[Throughline] Quality filter: 250 → 243 papers (removed 7 old low-citation papers)
+[Throughline] After quality filter, year distribution: {"2020":4,"2021":5,"2022":5,"2023":12,"2024":40,"2025":133,"2026":38,"unknown":6}
+[Throughline] After year filtering (>= 2022 ): 228 papers
+[Throughline] expandThreadToPresent - got 228 related papers
+[Throughline] rankByThreadRelevance - input: 228 papers for theme: Model-based image-goal navigation track emphasizin
+[Throughline] Prompt length: 365810 characters
+[Throughline] callLLM called with prompt length: 365810
+[Throughline] LLM returned incomplete array, auto-closing...
+[Throughline] Cleaned response (first 200 chars): [6,11,33,38,4,24,9,48,74,166,60,82,35,71,78,65,62,2,18,47,8,10,36]
+[Throughline] rankByThreadRelevance - output: 23 ranked papers
+[Throughline] expandThreadToPresent - ranked papers: 23
+
+Ranking 228 papers...
+  Using LLM to rank relevance to thread
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 17771
+[Throughline] Skipping already processed paper: GOAT: GO to Any Thing
+[Throughline] Adding paper to thread: GOAT-Bench: A Benchmark for Multi-Modal Lifelong Navigation 2024
+[Throughline] === THREAD STATE ===
+[Throughline] Expansion stack (depth 1):
+[Throughline] [0] Model-based image-goal navigation track emphasizing structur... (9 papers)
+[Throughline] Completed threads: 0
+
+Checking for new themes...
+  Analyzing: GOAT-Bench: A Benchmark for Multi-Modal Lifelong N...
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 2067
+[Throughline] callOpenRouter error: terminated
+[Throughline] LLM call attempt 1 failed with error, retrying in 2s...
+[Throughline] callLLM called with prompt length: 2877
+[Throughline] Sub-thread check: SKIP - Meta FAIR Habitat lineage: Simulation-based benchm - The Meta FAIR Habitat lineage focuses on end-to-end RL policies and benchmarks like PointNav/ObjectNav rather than directly building on the seed's specific topological SLAM representations with semantic features and geometric reasoning, representing an independent track in simulation-based navigation.
+[Throughline] callLLM called with prompt length: 2848
+[Throughline] Sub-thread check: SKIP - Modular robotics planning lineage: Compositional a - The candidate emphasizes modular compositional architectures and open-vocabulary lifelong navigation, sharing only broad elements like semantic maps but not directly building on or requiring the seed's specific neural topological SLAM with semantic node features and coarse geometry.
+[Throughline] callLLM called with prompt length: 2824
+[Throughline] Sub-thread check: SKIP - Continual/lifelong learning lineage: Implicit memo - The candidate focuses on general continual RL and implicit memory frameworks for lifelong multi-goal navigation, which do not directly build on or require the seed paper's specific topological SLAM representations and supervised map-building methods.
+
+Searching Semantic Scholar...
+  Finding papers from 2024+ using citations + embeddings
+
+  Active threads: 1
+[Throughline] fetchCitationsAndRecommendations - original paperId: a1cfddfd2fbd16a7aa62ebbded3674036e014731
+[Throughline] fetchCitationsAndRecommendations - paper title: GOAT-Bench: A Benchmark for Multi-Modal Lifelong Navigation
+[Throughline] Fetching citation batch 1 (offset 0)...
+[Throughline] Got 65 citing papers in batch 1
+[Throughline] Reached end of citations, stopping pagination
+[Throughline] Total citing papers across all batches: 65
+[Throughline] Citing papers year distribution: {"2022":1,"2024":21,"2025":39,"2026":2,"unknown":2}
+[Throughline] Fetching semantic recommendations...
+[Throughline] Got 100 recommendations
+[Throughline] Performing broader domain search for diverse approaches...
+[Throughline] Searching for: "visual navigation transformer foundation model"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: visual navigation tr...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: visual navigation tr...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "visual navigation transformer foundation model"
+[Throughline] Searching for: "vision language navigation VLN end-to-end learning"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 5, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 5 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 6, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 6 (broader search: vision language navi...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "vision language navigation VLN end-to-end learning"
+[Throughline] Searching for: "reinforcement learning navigation large scale simulation"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 5, waiting 5s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 5 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 6, waiting 5s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 6 (broader search: reinforcement learni...)
+
+  Active threads: 1
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "reinforcement learning navigation large scale simulation"
+[Throughline] Searching for: "robot navigation RL policy learning"
+[Throughline] Found 25 papers for "robot navigation RL policy learning"
+[Throughline] Broader search found 100 additional papers
+[Throughline] After merging:  256 unique papers
+[Throughline] Year distribution: {"2020":4,"2021":6,"2022":6,"2023":11,"2024":38,"2025":147,"2026":39,"unknown":5}
+[Throughline] Quality filter: 256 → 249 papers (removed 7 old low-citation papers)
+[Throughline] After quality filter, year distribution: {"2020":4,"2021":5,"2022":5,"2023":6,"2024":38,"2025":147,"2026":39,"unknown":5}
+[Throughline] After year filtering (>= 2023 ): 230 papers
+[Throughline] expandThreadToPresent - got 230 related papers
+[Throughline] rankByThreadRelevance - input: 230 papers for theme: Model-based image-goal navigation track emphasizin
+[Throughline] Prompt length: 378603 characters
+[Throughline] callLLM called with prompt length: 378603
+[Throughline] Cleaned response (first 200 chars): [35,69,8,48,167,51,13,66,15,120,54,19,52,45,27,7,18,25,34,37,1,5,46,47,49,50,78,83,120,167,3,4,6,37,39,40,41,42,43,44,2,9,10,11,12,14,16,17,20,22,24,26,28,29,30,31,32,33,36,38,55,56,57,58,59,60,61,62,
+[Throughline] rankByThreadRelevance - output: 229 ranked papers
+[Throughline] expandThreadToPresent - ranked papers: 229
+
+Ranking 230 papers...
+  Using LLM to rank relevance to thread
+
+  Active threads: 1
+[Throughline] callLLM called with prompt length: 18020
+[Throughline] expandThreadToPresent complete - thread now has 9 papers
+[Throughline] Thread after expansion: Model-based image-goal navigation track emphasizing structural map building and planning over end-to-end RL, using topological maps for long-horizon tasks in simulation - papers: 9 subthreads: 0
+[Throughline] Adding thread to results
+
+Expanding: Neural SLAM architectural thread prioritizing appr...
+  Searching papers from 2020 → present
+
+  Active threads: 2
+[Throughline] expandThreadToPresent - starting from year: 2020 to 2026
+[Throughline] Expansion stack depth: 1
+
+Searching Semantic Scholar...
+  Finding papers from 2020+ using citations + embeddings
+
+  Active threads: 2
+[Throughline] fetchCitationsAndRecommendations - original paperId: undefined
+[Throughline] fetchCitationsAndRecommendations - paper title: Neural Topological SLAM for Visual Navigation
+[Throughline] Using cached paperId: 5c378ca2e4699eaf763de9f8ec02ca89860bb1cf
+[Throughline] Fetching citation batch 1 (offset 0)...
+[Throughline] Got 100 citing papers in batch 1
+[Throughline] Fetching citation batch 2 (offset 100)...
+[Throughline] Got 100 citing papers in batch 2
+[Throughline] Fetching citation batch 3 (offset 200)...
+[Throughline] Got 100 citing papers in batch 3
+[Throughline] Fetching citation batch 4 (offset 300)...
+[Throughline] Got 47 citing papers in batch 4
+[Throughline] Reached end of citations, stopping pagination
+[Throughline] Total citing papers across all batches: 347
+[Throughline] Citing papers year distribution: {"2020":24,"2021":49,"2022":75,"2023":65,"2024":62,"2025":65,"2026":3,"unknown":4}
+[Throughline] Fetching semantic recommendations...
+[Throughline] Got 100 recommendations
+[Throughline] Performing broader domain search for diverse approaches...
+[Throughline] Searching for: "visual navigation transformer foundation model"
+[Throughline] Found 25 papers for "visual navigation transformer foundation model"
+[Throughline] Searching for: "vision language navigation VLN end-to-end learning"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: vision language navi...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: vision language navi...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: vision language navi...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 5, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 5 (broader search: vision language navi...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 6, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 6 (broader search: vision language navi...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 7, waiting 5s... (broader search: vision language navi...)
+
+Rate limited by Semantic Scholar...
+  Waiting 5s before retry 7 (broader search: vision language navi...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Search failed for "vision language navigation VLN end-to-end learning": Semantic Scholar API failed after 22.7s of retries (broader search: vision language navi...): Semantic Scholar API error: 429
+[Throughline] Searching for: "reinforcement learning navigation large scale simulation"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: reinforcement learni...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: reinforcement learni...)
+
+  Active threads: 2
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "reinforcement learning navigation large scale simulation"
+[Throughline] Searching for: "robot navigation RL policy learning"
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 2, waiting 1s... (broader search: robot navigation RL ...)
+
+Rate limited by Semantic Scholar...
+  Waiting 1s before retry 2 (broader search: robot navigation RL ...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 3, waiting 2s... (broader search: robot navigation RL ...)
+
+Rate limited by Semantic Scholar...
+  Waiting 2s before retry 3 (broader search: robot navigation RL ...)
+
+  Active threads: 2
+[Throughline] Semantic Scholar error response: {"message": "Too Many Requests. Please wait and try again or apply for a key for higher rate limits. https://www.semanticscholar.org/product/api#api-key-form", "code": "429"}
+[Throughline] callSemanticScholar error: Semantic Scholar API error: 429
+[Throughline] Semantic Scholar rate limited. Retry 4, waiting 4s... (broader search: robot navigation RL ...)
+
+Rate limited by Semantic Scholar...
+  Waiting 4s before retry 4 (broader search: robot navigation RL ...)
+
+  Active threads: 2
+[Throughline] Rate limit recovered. Increasing delay between requests to 3000ms
+[Throughline] Found 25 papers for "robot navigation RL policy learning"
+[Throughline] Broader search found 75 additional papers
+[Throughline] After merging:  514 unique papers
+[Throughline] Year distribution: {"2020":26,"2021":53,"2022":79,"2023":76,"2024":77,"2025":151,"2026":44,"unknown":8}
+[Throughline] Quality filter: 514 → 453 papers (removed 61 old low-citation papers)
+[Throughline] After quality filter, year distribution: {"2020":19,"2021":40,"2022":58,"2023":56,"2024":77,"2025":151,"2026":44,"unknown":8}
+[Throughline] After year filtering (>= 2019 ): 445 papers
+[Throughline] expandThreadToPresent - got 445 related papers
+[Throughline] rankByThreadRelevance - input: 445 papers for theme: Neural SLAM architectural thread prioritizing appr
+[Throughline] Prompt length: 667431 characters
+[Throughline] callLLM called with prompt length: 667431
+[Throughline] Cleaned response (first 200 chars): [11,7,13,12,24,29,66,82,32,22,47,40,33,86,25,37,87,93,4,44,26,81,41,9,8,1,3,16,20,39,55,70,85,95,108,136,151,152,154,174,186,192,193,211,225,233,244,247,249,252,257,270,279,281,287,289,293,299,302,306
+[Throughline] rankByThreadRelevance - LLM response parse failed
+[Throughline] Raw LLM response (first 500 chars): [11,7,13,12,24,29,66,82,32,22,47,40,33,86,25,37,87,93,4,44,26,81,41,9,8,1,3,16,20,39,55,70,85,95,108,136,151,152,154,174,186,192,193,211,225,233,244,247,249,252,257,270,279,281,287,289,293,299,302,306,310,316,318,330,341,346,348,360,370,378,379,384,386,388,393,395,396,398,399,400,401,402,406,407,408,409,410,411,412,413,414,415,416,417,418,419,420,421,422,423,424,425,426,427,428,429,430,431,432,433,434,435,436,437,438,439,440,441,442,443,444,445,446,447,448,449,450]
+
+**Explanation of ranking (not
+[Throughline] Parse error: Unexpected token * in JSON at position 471
+[Throughline] Asking LLM to clean up malformed response...
+[Throughline] callLLM called with prompt length: 2809
+[Throughline] rankByThreadRelevance - successfully recovered with LLM fix: 122 papers
+[Throughline] expandThreadToPresent - ranked papers: 122
+
+Ranking 445 papers...
+  Using LLM to rank relevance to thread
+
+  Active threads: 2
+[Throughline] callLLM called with prompt length: 15487
+[Throughline] Skipping already processed paper: Object Goal Navigation using Goal-Oriented Semantic Exploration
+[Throughline] expandThreadToPresent complete - thread now has 1 papers
+[Throughline] Thread after expansion: Neural SLAM architectural thread prioritizing approximate geometric reasoning via semantics in graphs, distinct from dense metric or filter-based SLAM philosophies - papers: 1 subthreads: 0
+[Throughline] Skipping thread (only 1 paper, no subthreads)
+Processing seed 1/1 - 33.3%
+  Active threads: 1
+Complete! - 100.0%
+  Active threads: 1
+
+
+Analysis complete in 1238.1s!
+Found 1 research threads
+
+======================================================================
+RESEARCH LINEAGES FOUND
+======================================================================
+
+1. Model-based image-goal navigation track emphasizing structural map building and planning over end-to-end RL, using topological maps for long-horizon tasks in simulation
+   Spawned from: "Neural Topological SLAM for Visual Navigation" (2020)
+   Papers in thread: 9
+     → [2020] Neural Topological SLAM for Visual Navigation
+       [2020] Object Goal Navigation using Goal-Oriented Semantic Explorat...
+         └─ Same core authors (Chaplot, Salakhutdinov, A. Gupta), direct extension to object-goal nav with modular episodic semantic map building and exploration, continues model-based structural mapping philosophy from seed topological SLAM
+       [2021] SEAL: Self-supervised Embodied Active Learning using Explora...
+         └─ Core authors (Chaplot, Gupta, Salakhutdinov) continuing work; builds 3D semantic maps for exploration and Object Goal Navigation, aligning with model-based structural mapping and planning philosophy
+       [2021] Differentiable Spatial Planning using Transformers
+         └─ Chaplot leading; extends to differentiable planning on obstacle maps with transformers for navigation, direct model-based planning evolution from topological SLAM approach
+       [2021] FILM: Following Instructions in Language with Modular Method...
+         └─ Chaplot and Salakhutdinov; modular approach builds explicit semantic maps and semantic search policy for navigation, direct continuation of model-based structural reasoning
+       [2022] Navigating to objects in the real world
+         └─ Chaplot, Malik; empirical validation of modular learning with semantic maps/exploration for real-world object navigation, same lab/philosophy extending simulation work
+       [2023] GOAT: GO to Any Thing
+         └─ Same CMU Gupta/HomeRobot lab lineage (Khanna, Yenamandra, Shah overlap with extensions like real-world nav); direct technical descendant extending model-based image-goal nav with instance-aware semantic memory/maps and modular planning, building on 'Navigating to objects in the real world' as ancestor
+       [2023] Navigating to Objects Specified by Images
+         └─ Same CMU/HomeRobot lab (Krantz, Gervet, Yadav, Wang, Paxton overlap); explicit modular map-based image-goal navigation with feature projection to structural maps, direct philosophy match to model-based structural planning over end-to-end RL
+       [2024] GOAT-Bench: A Benchmark for Multi-Modal Lifelong Navigation
+         └─ Direct extension of GOAT (explicitly GOAT-Bench/task); same core authors/lab (Mukul Khanna, Sriram Yenamandra, Théophile Gervet + Ram Ramrakhya), evaluates modular methods on lineage's multimodal lifelong nav philosophy
+
+======================================================================
+Total: 1 threads from 1 seed papers
+Duration: 1238.1s
+======================================================================
+
+Results saved to throughline-results.json
+Debug tree saved to throughline-debug-tree.txt

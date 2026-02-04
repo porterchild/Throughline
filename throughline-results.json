@@ -1,0 +1,1473 @@
+{
+  "success": true,
+  "threads": [
+    {
+      "id": "t_zsr4dlthh",
+      "theme": "Cornell University lab lineage (Shah, Hariharan et al.) extending neural topological SLAM to transformer-based (ViNT) and vision-language models for zero-shot image- and object-goal navigation.",
+      "spawnYear": 2020,
+      "spawnPaper": {
+        "title": "Neural Topological SLAM for Visual Navigation",
+        "authors": [
+          {
+            "name": "Devendra Singh Chaplot"
+          },
+          {
+            "name": "Ruslan Salakhutdinov"
+          },
+          {
+            "name": "Abhinav Gupta"
+          },
+          {
+            "name": "Saurabh Gupta"
+          }
+        ],
+        "year": 2020
+      },
+      "papers": [
+        {
+          "title": "Neural Topological SLAM for Visual Navigation",
+          "abstract": "This paper studies the problem of image-goal navigation which involves navigating to the location indicated by a goal image in a novel previously unseen environment. To tackle this problem, we design topological representations for space that effectively leverage semantics and afford approximate geometric reasoning. At the heart of our representations are nodes with associated semantic features, that are interconnected using coarse geometric information. We describe supervised learning-based algorithms that can build, maintain and use such representations under noisy actuation. Experimental study in visually and physically realistic simulation suggests that our method builds effective representations that capture structural regularities and efficiently solve long-horizon navigation problems. We observe a relative improvement of more than 50% over existing methods that study this task.",
+          "year": 2020,
+          "authors": [
+            {
+              "name": "Devendra Singh Chaplot"
+            },
+            {
+              "name": "Ruslan Salakhutdinov"
+            },
+            {
+              "name": "Abhinav Gupta"
+            },
+            {
+              "name": "Saurabh Gupta"
+            }
+          ],
+          "nickname": "Chaplot et al., 2020"
+        },
+        {
+          "paperId": "d77e806cd177a162fd20445ed6df566e08d58ced",
+          "title": "ViNT: A Foundation Model for Visual Navigation",
+          "year": 2023,
+          "citationCount": 249,
+          "openAccessPdf": {
+            "url": "http://arxiv.org/pdf/2306.14846",
+            "status": "CLOSED",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2306.14846, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "145718344",
+              "name": "Dhruv Shah"
+            },
+            {
+              "authorId": "52515248",
+              "name": "A. Sridhar"
+            },
+            {
+              "authorId": "2141580656",
+              "name": "Nitish Dashora"
+            },
+            {
+              "authorId": "2106415427",
+              "name": "Kyle Stachowicz"
+            },
+            {
+              "authorId": "2069483822",
+              "name": "Kevin Black"
+            },
+            {
+              "authorId": "145564847",
+              "name": "N. Hirose"
+            },
+            {
+              "authorId": "1736651",
+              "name": "S. Levine"
+            }
+          ],
+          "abstract": "General-purpose pre-trained models (\"foundation models\") have enabled practitioners to produce generalizable solutions for individual machine learning problems with datasets that are significantly smaller than those required for learning from scratch. Such models are typically trained on large and diverse datasets with weak supervision, consuming much more training data than is available for any individual downstream application. In this paper, we describe the Visual Navigation Transformer (ViNT), a foundation model that aims to bring the success of general-purpose pre-trained models to vision-based robotic navigation. ViNT is trained with a general goal-reaching objective that can be used with any navigation dataset, and employs a flexible Transformer-based architecture to learn navigational affordances and enable efficient adaptation to a variety of downstream navigational tasks. ViNT is trained on a number of existing navigation datasets, comprising hundreds of hours of robotic navigation from a variety of different robotic platforms, and exhibits positive transfer, outperforming specialist models trained on singular datasets. ViNT can be augmented with diffusion-based subgoal proposals to explore novel environments, and can solve kilometer-scale navigation problems when equipped with long-range heuristics. ViNT can also be adapted to novel task specifications with a technique inspired by prompt-tuning, where the goal encoder is replaced by an encoding of another task modality (e.g., GPS waypoints or routing commands) embedded into the same space of goal tokens. This flexibility and ability to accommodate a variety of downstream problem domains establishes ViNT as an effective foundation model for mobile robotics. For videos, code, and model checkpoints, see our project page at https://visualnav-transformer.github.io.",
+          "selectionReason": "Direct intellectual descendant: Authors include Dhruv Shah from Cornell lineage; introduces ViNT (explicitly named in lineage description as transformer-based extension of neural topological SLAM); focuses on foundation models for visual navigation, aligning with zero-shot navigation philosophy."
+        },
+        {
+          "paperId": "05bad81069c8b11202e90ac16c543efc774e2800",
+          "title": "NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration",
+          "year": 2023,
+          "citationCount": 259,
+          "openAccessPdf": {
+            "url": "http://arxiv.org/pdf/2310.07896",
+            "status": "GREEN",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2310.07896, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "52515248",
+              "name": "A. Sridhar"
+            },
+            {
+              "authorId": "145718344",
+              "name": "Dhruv Shah"
+            },
+            {
+              "authorId": "2257348904",
+              "name": "Catherine Glossop"
+            },
+            {
+              "authorId": "2257062067",
+              "name": "Sergey Levine"
+            }
+          ],
+          "abstract": "Robotic learning for navigation in unfamiliar environments needs to provide policies for both task-oriented navigation (i.e., reaching a goal that the robot has located), and task-agnostic exploration (i.e., searching for a goal in a novel setting). Typically, these roles are handled by separate models, for example by using subgoal proposals, planning, or separate navigation strategies. In this paper, we describe how we can train a single unified diffusion policy to handle both goal-directed navigation and goal-agnostic exploration, with the latter providing the ability to search novel environments, and the former providing the ability to reach a user-specified goal once it has been located. We show that this unified policy results in better overall performance when navigating to visually indicated goals in novel environments, as compared to approaches that use subgoal proposals from generative models, or prior methods based on latent variable models. We instantiate our method by using a large-scale Transformer-based policy trained on data from multiple ground robots, with a diffusion model decoder to flexibly handle both goal-conditioned and goal-agnostic navigation. Our experiments, conducted on a real-world mobile robot platform, show effective navigation in unseen environments in comparison with five alternative methods, and demonstrate significant improvements in performance and lower collision rates, despite utilizing smaller models than state-of-the-art approaches.",
+          "selectionReason": "Clear descendant from same Cornell lab/authors (A. Sridhar, Dhruv Shah); extends navigation research (exploration and goal-oriented) in the same lineage thread, building on visual navigation advancements like topological SLAM and ViNT."
+        },
+        {
+          "paperId": "58ba0813023472994bc337be0ba7e6aa5caae3d6",
+          "title": "OmniVLA: An Omni-Modal Vision-Language-Action Model for Robot Navigation",
+          "year": 2025,
+          "citationCount": 6,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2509.19480, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2289842647",
+              "name": "Noriaki Hirose"
+            },
+            {
+              "authorId": "2257348904",
+              "name": "Catherine Glossop"
+            },
+            {
+              "authorId": "145718344",
+              "name": "Dhruv Shah"
+            },
+            {
+              "authorId": "2257062067",
+              "name": "Sergey Levine"
+            }
+          ],
+          "abstract": "Humans can flexibly interpret and compose different goal specifications, such as language instructions, spatial coordinates, or visual references, when navigating to a destination. In contrast, most existing robotic navigation policies are trained on a single modality, limiting their adaptability to real-world scenarios where different forms of goal specification are natural and complementary. In this work, we present a training framework for robotic foundation models that enables omni-modal goal conditioning for vision-based navigation. Our approach leverages a high-capacity vision-language-action (VLA) backbone and trains with three primary goal modalities: 2D poses, egocentric images, and natural language, as well as their combinations, through a randomized modality fusion strategy. This design not only expands the pool of usable datasets but also encourages the policy to develop richer geometric, semantic, and visual representations. The resulting model, OmniVLA, achieves strong generalization to unseen environments, robustness to scarce modalities, and the ability to follow novel natural language instructions. We demonstrate that OmniVLA outperforms specialist baselines across modalities and offers a flexible foundation for fine-tuning to new modalities and tasks. We believe OmniVLA provides a step toward broadly generalizable and flexible navigation policies, and a scalable path for building omni-modal robotic foundation models. We present videos showcasing OmniVLA performance and will release its checkpoints and training code on our project page.",
+          "selectionReason": "Authors include Dhruv Shah (core lineage author); extends ViNT-style foundation models to omni-modal VLA for zero-shot multi-modal (language, visual) navigation."
+        },
+        {
+          "paperId": "03bf2ac9be967451ca140d8650285828e3cd574c",
+          "title": "CAST: Counterfactual Labels Improve Instruction Following in Vision-Language-Action Models",
+          "year": 2025,
+          "citationCount": 6,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2508.13446, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2257348904",
+              "name": "Catherine Glossop"
+            },
+            {
+              "authorId": "2282542320",
+              "name": "William Chen"
+            },
+            {
+              "authorId": "2187206730",
+              "name": "Arjun Bhorkar"
+            },
+            {
+              "authorId": "145718344",
+              "name": "Dhruv Shah"
+            },
+            {
+              "authorId": "2257062067",
+              "name": "Sergey Levine"
+            }
+          ],
+          "abstract": "Generalist robots should be able to understand and follow user instructions, but current vision-language-action (VLA) models struggle with following fine-grained commands despite providing a powerful architecture for mapping open-vocabulary natural language instructions to robot actions. One cause for this is a lack of semantic diversity and language grounding in existing robot datasets and, specifically, a lack of fine-grained task diversity for similar observations. To address this, we present a novel method to augment existing robot datasets by leveraging vision language models to create counterfactual labels. Our method improves the language-following capabilities of VLAs by increasing the diversity and granularity of language grounding for robot datasets by generating counterfactual language and actions. We evaluate the resulting model's ability to follow language instructions, ranging from simple object-centric commands to complex referential tasks, by conducting visual language navigation experiments in 3 different indoor and outdoor environments. Our experiments demonstrate that counterfactual relabeling, without any additional data collection, significantly improves instruction-following in VLA policies, making them competitive with state-of-the-art methods and increasing success rate by 27% on navigation tasks.",
+          "selectionReason": "Lead author Catherine Glossop co-authors with Shah (paper 1); refines VLA models for instruction following, aligning with vision-language extension in lineage."
+        },
+        {
+          "paperId": "b3d10c0c04c4e82bf8ded0ae97b0182d1cccd8bf",
+          "title": "Learning to Drive Anywhere With Model-Based Reannotation",
+          "year": 2025,
+          "citationCount": 8,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2505.05592, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2289842647",
+              "name": "Noriaki Hirose"
+            },
+            {
+              "authorId": "2350000183",
+              "name": "Lydia Ignatova"
+            },
+            {
+              "authorId": "2106415427",
+              "name": "Kyle Stachowicz"
+            },
+            {
+              "authorId": "2257348904",
+              "name": "Catherine Glossop"
+            },
+            {
+              "authorId": "2300286335",
+              "name": "Sergey Levine"
+            },
+            {
+              "authorId": "145718344",
+              "name": "Dhruv Shah"
+            }
+          ],
+          "abstract": "Developing broadly generalizable visual navigation policies for robots is a significant challenge, primarily constrained by the availability of large-scale, diverse training data. While curated datasets collected by researchers offer high quality, their limited size restricts policy generalization. To overcome this, we explore leveraging abundant, passively collected data sources, including large volumes of crowd-sourced teleoperation data and unlabeled YouTube videos, despite their potential for lower quality or missing action labels. We propose Model-Based ReAnnotation (MBRA), a framework that utilizes a learned short-horizon, model-based expert model to relabel or generate high-quality actions for these passive datasets. This relabeled data is then distilled into LogoNav, a long-horizon navigation policy conditioned on visual goals or GPS waypoints. We demonstrate that LogoNav, trained using MBRA-processed data, achieves state-of-the-art performance, enabling robust navigation over distances exceeding 300 meters in previously unseen indoor and outdoor environments. Our extensive real-world evaluations, conducted across a fleet of robots (including quadrupeds) in six cities on three continents, validate the policy’s ability to generalize and navigate effectively even amidst pedestrians in crowded settings. We present videos showcasing the performance and release our checkpoints and training code on our project page, https://model-base-reannotation.github.io/.",
+          "selectionReason": "Author Noriaki Hirose co-authors with Shah (paper 1); focuses on generalizable visual navigation policies, extending ViNT/NoMaD philosophy to diverse data-driven robot nav."
+        }
+      ],
+      "subThreads": []
+    },
+    {
+      "id": "t_y1wipxf2e",
+      "theme": "Diffusion policies with goal masking for unified goal-agnostic exploration and goal-conditioned navigation, leveraging transformer architectures trained on multi-robot data as an alternative to representation-heavy approaches like topological SLAM, ViNT, or VLM-based zero-shot navigation.",
+      "spawnYear": 2023,
+      "spawnPaper": {
+        "paperId": "05bad81069c8b11202e90ac16c543efc774e2800",
+        "title": "NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration",
+        "year": 2023,
+        "citationCount": 259,
+        "openAccessPdf": {
+          "url": "http://arxiv.org/pdf/2310.07896",
+          "status": "GREEN",
+          "license": null,
+          "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2310.07896, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+        },
+        "authors": [
+          {
+            "authorId": "52515248",
+            "name": "A. Sridhar"
+          },
+          {
+            "authorId": "145718344",
+            "name": "Dhruv Shah"
+          },
+          {
+            "authorId": "2257348904",
+            "name": "Catherine Glossop"
+          },
+          {
+            "authorId": "2257062067",
+            "name": "Sergey Levine"
+          }
+        ],
+        "abstract": "Robotic learning for navigation in unfamiliar environments needs to provide policies for both task-oriented navigation (i.e., reaching a goal that the robot has located), and task-agnostic exploration (i.e., searching for a goal in a novel setting). Typically, these roles are handled by separate models, for example by using subgoal proposals, planning, or separate navigation strategies. In this paper, we describe how we can train a single unified diffusion policy to handle both goal-directed navigation and goal-agnostic exploration, with the latter providing the ability to search novel environments, and the former providing the ability to reach a user-specified goal once it has been located. We show that this unified policy results in better overall performance when navigating to visually indicated goals in novel environments, as compared to approaches that use subgoal proposals from generative models, or prior methods based on latent variable models. We instantiate our method by using a large-scale Transformer-based policy trained on data from multiple ground robots, with a diffusion model decoder to flexibly handle both goal-conditioned and goal-agnostic navigation. Our experiments, conducted on a real-world mobile robot platform, show effective navigation in unseen environments in comparison with five alternative methods, and demonstrate significant improvements in performance and lower collision rates, despite utilizing smaller models than state-of-the-art approaches.",
+        "selectionReason": "Clear descendant from same Cornell lab/authors (A. Sridhar, Dhruv Shah); extends navigation research (exploration and goal-oriented) in the same lineage thread, building on visual navigation advancements like topological SLAM and ViNT."
+      },
+      "papers": [
+        {
+          "paperId": "05bad81069c8b11202e90ac16c543efc774e2800",
+          "title": "NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration",
+          "year": 2023,
+          "citationCount": 259,
+          "openAccessPdf": {
+            "url": "http://arxiv.org/pdf/2310.07896",
+            "status": "GREEN",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2310.07896, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "52515248",
+              "name": "A. Sridhar"
+            },
+            {
+              "authorId": "145718344",
+              "name": "Dhruv Shah"
+            },
+            {
+              "authorId": "2257348904",
+              "name": "Catherine Glossop"
+            },
+            {
+              "authorId": "2257062067",
+              "name": "Sergey Levine"
+            }
+          ],
+          "abstract": "Robotic learning for navigation in unfamiliar environments needs to provide policies for both task-oriented navigation (i.e., reaching a goal that the robot has located), and task-agnostic exploration (i.e., searching for a goal in a novel setting). Typically, these roles are handled by separate models, for example by using subgoal proposals, planning, or separate navigation strategies. In this paper, we describe how we can train a single unified diffusion policy to handle both goal-directed navigation and goal-agnostic exploration, with the latter providing the ability to search novel environments, and the former providing the ability to reach a user-specified goal once it has been located. We show that this unified policy results in better overall performance when navigating to visually indicated goals in novel environments, as compared to approaches that use subgoal proposals from generative models, or prior methods based on latent variable models. We instantiate our method by using a large-scale Transformer-based policy trained on data from multiple ground robots, with a diffusion model decoder to flexibly handle both goal-conditioned and goal-agnostic navigation. Our experiments, conducted on a real-world mobile robot platform, show effective navigation in unseen environments in comparison with five alternative methods, and demonstrate significant improvements in performance and lower collision rates, despite utilizing smaller models than state-of-the-art approaches.",
+          "selectionReason": "Clear descendant from same Cornell lab/authors (A. Sridhar, Dhruv Shah); extends navigation research (exploration and goal-oriented) in the same lineage thread, building on visual navigation advancements like topological SLAM and ViNT."
+        }
+      ],
+      "subThreads": []
+    },
+    {
+      "id": "t_bjj2gr8so",
+      "theme": "Graph neural network architectures for semantic topological mapping and long-horizon planning in embodied visual navigation benchmarks like Habitat.",
+      "spawnYear": 2020,
+      "spawnPaper": {
+        "title": "Neural Topological SLAM for Visual Navigation",
+        "authors": [
+          {
+            "name": "Devendra Singh Chaplot"
+          },
+          {
+            "name": "Ruslan Salakhutdinov"
+          },
+          {
+            "name": "Abhinav Gupta"
+          },
+          {
+            "name": "Saurabh Gupta"
+          }
+        ],
+        "year": 2020
+      },
+      "papers": [
+        {
+          "title": "Neural Topological SLAM for Visual Navigation",
+          "abstract": "This paper studies the problem of image-goal navigation which involves navigating to the location indicated by a goal image in a novel previously unseen environment. To tackle this problem, we design topological representations for space that effectively leverage semantics and afford approximate geometric reasoning. At the heart of our representations are nodes with associated semantic features, that are interconnected using coarse geometric information. We describe supervised learning-based algorithms that can build, maintain and use such representations under noisy actuation. Experimental study in visually and physically realistic simulation suggests that our method builds effective representations that capture structural regularities and efficiently solve long-horizon navigation problems. We observe a relative improvement of more than 50% over existing methods that study this task.",
+          "year": 2020,
+          "authors": [
+            {
+              "name": "Devendra Singh Chaplot"
+            },
+            {
+              "name": "Ruslan Salakhutdinov"
+            },
+            {
+              "name": "Abhinav Gupta"
+            },
+            {
+              "name": "Saurabh Gupta"
+            }
+          ],
+          "nickname": "Chaplot et al., 2020"
+        },
+        {
+          "paperId": "62516303058a1322450b58e4cd778ab873b5e531",
+          "title": "Object Goal Navigation using Goal-Oriented Semantic Exploration",
+          "year": 2020,
+          "citationCount": 651,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2007.00643, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2328602",
+              "name": "Devendra Singh Chaplot"
+            },
+            {
+              "authorId": "3393217",
+              "name": "Dhiraj Gandhi"
+            },
+            {
+              "authorId": "1726095131",
+              "name": "A. Gupta"
+            },
+            {
+              "authorId": "145124475",
+              "name": "R. Salakhutdinov"
+            }
+          ],
+          "abstract": "This work studies the problem of object goal navigation which involves navigating to an instance of the given object category in unseen environments. End-to-end learning-based navigation methods struggle at this task as they are ineffective at exploration and long-term planning. We propose a modular system called, `Goal-Oriented Semantic Exploration' which builds an episodic semantic map and uses it to explore the environment efficiently based on the goal object category. Empirical results in visually realistic simulation environments show that the proposed model outperforms a wide range of baselines including end-to-end learning-based methods as well as modular map-based methods and led to the winning entry of the CVPR-2020 Habitat ObjectNav Challenge. Ablation analysis indicates that the proposed model learns semantic priors of the relative arrangement of objects in a scene, and uses them to explore efficiently. Domain-agnostic module design allow us to transfer our model to a mobile robot platform and achieve similar performance for object goal navigation in the real-world.",
+          "selectionReason": "Same lead author (Chaplot) and senior author (Gupta) from the originating paper; refines the semantic topological mapping philosophy for object-goal navigation with goal-oriented exploration in similar embodied visual navigation tasks."
+        },
+        {
+          "paperId": "0c6af0a9da38e4af39f54d5a1455a76e38f008c9",
+          "title": "PONI: Potential Functions for ObjectGoal Navigation with Interaction-free Learning",
+          "year": 2022,
+          "citationCount": 213,
+          "openAccessPdf": {
+            "url": "https://arxiv.org/pdf/2201.10029",
+            "status": "GREEN",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2201.10029, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "21810992",
+              "name": "Santhosh K. Ramakrishnan"
+            },
+            {
+              "authorId": "2142753065",
+              "name": "D. Chaplot"
+            },
+            {
+              "authorId": "1390024605",
+              "name": "Ziad Al-Halah"
+            },
+            {
+              "authorId": "153652147",
+              "name": "J. Malik"
+            },
+            {
+              "authorId": "1794409",
+              "name": "K. Grauman"
+            }
+          ],
+          "abstract": "State-of-the-art approaches to ObjectGoal navigation (ObjectNav) rely on reinforcement learning and typically require significant computational resources and time for learning. We propose Potential functions for ObjectGoal Navigation with Interaction-free learning (PONI), a modular approach that disentangles the skills of 'where to look?’ for an object and 'how to navigate to $(x,\\ y)$?’. Our key insight is that 'where to look?’ can be treated purely as a perception problem, and learned without environment interactions. To address this, we propose a network that predicts two complementary potential functions conditioned on a semantic map and uses them to decide where to look for an unseen object. We train the potential function network using supervised learning on a passive dataset of top-down semantic maps, and integrate it into a modular framework to perform ObjectNav. Experiments on Gibson and Matterport3D demonstrate that our method achieves the stateof-the-art for ObjectNav while incurring up to $1,600\\times less$ computational cost for training. Code and pre-trained models are available.11Website: https://vision.cs.utexas.edu/projects/poni/",
+          "selectionReason": "Co-authored by D. Chaplot (direct author lineage from existing papers); modular approach for ObjectGoal Navigation in Habitat-like settings, refining semantic exploration methods."
+        },
+        {
+          "paperId": "698f2c76643d697a6e8e203ce83ec948c2b9d856",
+          "title": "TopoNav: Topological Graphs as a Key Enabler for Advanced Object Navigation",
+          "year": 2025,
+          "citationCount": 4,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2509.01364, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2314968936",
+              "name": "Peiran Liu"
+            },
+            {
+              "authorId": "2230253713",
+              "name": "Qiang Zhang"
+            },
+            {
+              "authorId": "2372268470",
+              "name": "Daojie Peng"
+            },
+            {
+              "authorId": "2292080350",
+              "name": "Lingfeng Zhang"
+            },
+            {
+              "authorId": "2373499167",
+              "name": "Yihao Qin"
+            },
+            {
+              "authorId": "2299155940",
+              "name": "Hang Zhou"
+            },
+            {
+              "authorId": "2374084860",
+              "name": "Jun Ma"
+            },
+            {
+              "authorId": "2243405867",
+              "name": "Renjing Xu"
+            },
+            {
+              "authorId": "2299294479",
+              "name": "Yiding Ji"
+            }
+          ],
+          "abstract": "Object Navigation (ObjectNav) has made great progress with large language models (LLMs), but still faces challenges in memory management, especially in long-horizon tasks and dynamic scenes. To address this, we propose TopoNav, a new framework that leverages topological structures as spatial memory. By building and updating a topological graph that captures scene connections, adjacency, and semantic meaning, TopoNav helps agents accumulate spatial knowledge over time, retrieve key information, and reason effectively toward distant goals. Our experiments show that TopoNav achieves state-of-the-art performance on benchmark ObjectNav datasets, with higher success rates and more efficient paths. It particularly excels in diverse and complex environments, as it connects temporary visual inputs with lasting spatial understanding.",
+          "selectionReason": "Explicit use of topological graphs as spatial memory for long-horizon ObjectNav, directly extending the philosophy of semantic topological mapping from Neural Topological SLAM."
+        },
+        {
+          "paperId": "c9665af86088464de25006066f17d36874461eaa",
+          "title": "HOZ++: Versatile Hierarchical Object-to-Zone Graph for Object Navigation",
+          "year": 2025,
+          "citationCount": 7,
+          "openAccessPdf": {
+            "url": "",
+            "status": "CLOSED",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://api.unpaywall.org/v2/10.1109/TPAMI.2025.3552987?email=<INSERT_YOUR_EMAIL> or https://doi.org/10.1109/TPAMI.2025.3552987, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "1934442800",
+              "name": "Sixian Zhang"
+            },
+            {
+              "authorId": "1688375",
+              "name": "Xinhang Song"
+            },
+            {
+              "authorId": "2321926381",
+              "name": "Xinyao Yu"
+            },
+            {
+              "authorId": "2141377807",
+              "name": "Yubing Bai"
+            },
+            {
+              "authorId": "2351082185",
+              "name": "Xinlong Guo"
+            },
+            {
+              "authorId": "2135224119",
+              "name": "Weijie Li"
+            },
+            {
+              "authorId": "2287783308",
+              "name": "Shuqiang Jiang"
+            }
+          ],
+          "abstract": "The goal of object navigation task is to reach the expected objects using visual information in unseen environments. Previous works typically implement deep models as agents that are trained to predict actions based on visual observations. Despite extensive training, agents often fail to make wise decisions when navigating in unseen environments toward invisible targets. In contrast, humans demonstrate a remarkable talent to navigate toward targets even in unseen environments. This superior capability is attributed to the cognitive map in the hippocampus, which enables humans to recall past experiences in similar situations and anticipate future occurrences during navigation. It is also dynamically updated with new observations from unseen environments. The cognitive map equips humans with a wealth of prior knowledge, significantly enhancing their navigation capabilities. Inspired by human navigation mechanisms, we propose the Hierarchical Object-to-Zone (HOZ++) graph, which encapsulates the regularities among objects, zones, and scenes. The HOZ++ graph helps the agent to identify the current zone and the target zone, and computes an optimal path between them, then selects the next zone along the path as the guidance for the agent. Moreover, the HOZ++ graph continuously updates based on real-time observations in new environments, thereby enhancing its adaptability to new environments. Our HOZ++ graph is versatile and can be integrated into existing methods, including end-to-end RL and modular methods. Our method is evaluated across four simulators, including AI2-THOR, RoboTHOR, Gibson, and Matterport 3D. Additionally, we build a realistic environment to evaluate our method in the real world. Experimental results demonstrate the effectiveness and efficiency of our proposed method.",
+          "selectionReason": "Hierarchical object-to-zone graphs for ObjectNav, aligning with graph-based semantic topological architectures for embodied navigation planning."
+        },
+        {
+          "paperId": "9413ed19a18a592f3cca890974e66ec7d7de06ce",
+          "title": "OpenNavMap: Structure-Free Topometric Mapping via Large-Scale Collaborative Localization",
+          "year": 2026,
+          "citationCount": 1,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2601.12291, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2325953467",
+              "name": "Jianhao Jiao"
+            },
+            {
+              "authorId": "2405837724",
+              "name": "Changkun Liu"
+            },
+            {
+              "authorId": "2258452492",
+              "name": "Jingwen Yu"
+            },
+            {
+              "authorId": "2348790044",
+              "name": "Boyi Liu"
+            },
+            {
+              "authorId": "2370951476",
+              "name": "Qianyi Zhang"
+            },
+            {
+              "authorId": "2326071166",
+              "name": "Yue Wang"
+            },
+            {
+              "authorId": "2324696582",
+              "name": "Dimitrios Kanoulas"
+            }
+          ],
+          "abstract": "Scalable and maintainable map representations are fundamental to enabling large-scale visual navigation and facilitating the deployment of robots in real-world environments. While collaborative localization across multi-session mapping enhances efficiency, traditional structure-based methods struggle with high maintenance costs and fail in feature-less environments or under significant viewpoint changes typical of crowd-sourced data. To address this, we propose OPENNAVMAP, a lightweight, structure-free topometric system leveraging 3D geometric foundation models for on-demand reconstruction. Our method unifies dynamic programming-based sequence matching, geometric verification, and confidence-calibrated optimization to robust, coarse-to-fine submap alignment without requiring pre-built 3D models. Evaluations on the Map-Free benchmark demonstrate superior accuracy over structure-from-motion and regression baselines, achieving an average translation error of 0.62m. Furthermore, the system maintains global consistency across 15km of multi-session data with an absolute trajectory error below 3m for map merging. Finally, we validate practical utility through 12 successful autonomous image-goal navigation tasks on simulated and physical robots. Code and datasets will be publicly available in https://rpl-cs-ucl.github.io/OpenNavMap_page.",
+          "selectionReason": "Structure-free topometric mapping for scalable visual navigation refines topological mapping philosophy for long-horizon embodied navigation."
+        },
+        {
+          "paperId": "32506c17842359617cc3d7ec4df9c6f86c0f6052",
+          "title": "Dynamic Topology Awareness: Breaking the Granularity Rigidity in Vision-Language Navigation",
+          "year": 2026,
+          "citationCount": 0,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2601.21751, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2407464945",
+              "name": "Jiankun Peng"
+            },
+            {
+              "authorId": "2408222093",
+              "name": "Jianyuan Guo"
+            },
+            {
+              "authorId": "2408493525",
+              "name": "Ying Xu"
+            },
+            {
+              "authorId": "2408446335",
+              "name": "Yue Liu"
+            },
+            {
+              "authorId": "2347866850",
+              "name": "Jiashuang Yan"
+            },
+            {
+              "authorId": "2408348575",
+              "name": "Xuanwei Ye"
+            },
+            {
+              "authorId": "2407648858",
+              "name": "Houhua Li"
+            },
+            {
+              "authorId": "2408508193",
+              "name": "Xiaoming Wang"
+            }
+          ],
+          "abstract": "Vision-Language Navigation in Continuous Environments (VLN-CE) presents a core challenge: grounding high-level linguistic instructions into precise, safe, and long-horizon spatial actions. Explicit topological maps have proven to be a vital solution for providing robust spatial memory in such tasks. However, existing topological planning methods suffer from a\"Granularity Rigidity\"problem. Specifically, these methods typically rely on fixed geometric thresholds to sample nodes, which fails to adapt to varying environmental complexities. This rigidity leads to a critical mismatch: the model tends to over-sample in simple areas, causing computational redundancy, while under-sampling in high-uncertainty regions, increasing collision risks and compromising precision. To address this, we propose DGNav, a framework for Dynamic Topological Navigation, introducing a context-aware mechanism to modulate map density and connectivity on-the-fly. Our approach comprises two core innovations: (1) A Scene-Aware Adaptive Strategy that dynamically modulates graph construction thresholds based on the dispersion of predicted waypoints, enabling\"densification on demand\"in challenging environments; (2) A Dynamic Graph Transformer that reconstructs graph connectivity by fusing visual, linguistic, and geometric cues into dynamic edge weights, enabling the agent to filter out topological noise and enhancing instruction adherence. Extensive experiments on the R2R-CE and RxR-CE benchmarks demonstrate DGNav exhibits superior navigation performance and strong generalization capabilities. Furthermore, ablation studies confirm that our framework achieves an optimal trade-off between navigation efficiency and safe exploration. The code is available at https://github.com/shannanshouyin/DGNav.",
+          "selectionReason": "Explicit topological maps for dynamic granularity and long-horizon planning in VLN-CE directly descends from topological graph architectures in the lineage."
+        },
+        {
+          "paperId": "e879a4e1615a2063bf04538eec583d50dfc370a0",
+          "title": "ETP-R1: Evolving Topological Planning with Reinforcement Fine-tuning for Vision-Language Navigation in Continuous Environments",
+          "year": 2025,
+          "citationCount": 0,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2512.20940, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2300780898",
+              "name": "Shuhao Ye"
+            },
+            {
+              "authorId": "2284073779",
+              "name": "Sitong Mao"
+            },
+            {
+              "authorId": "2115440911",
+              "name": "Yuxiang Cui"
+            },
+            {
+              "authorId": "2267160058",
+              "name": "Xuan Yu"
+            },
+            {
+              "authorId": "2352499291",
+              "name": "Shichao Zhai"
+            },
+            {
+              "authorId": "2400646271",
+              "name": "Wen Chen"
+            },
+            {
+              "authorId": "2284184099",
+              "name": "Shunbo Zhou"
+            },
+            {
+              "authorId": "2265428093",
+              "name": "Rong Xiong"
+            },
+            {
+              "authorId": "2310791120",
+              "name": "Yue Wang"
+            }
+          ],
+          "abstract": "Vision-Language Navigation in Continuous Environments (VLN-CE) requires an embodied agent to navigate towards target in continuous environments, following natural language instructions. While current graph-based methods offer an efficient, structured approach by abstracting the environment into a topological map and simplifying the action space to waypoint selection, they lag behind methods based on Large Vision-Language Models (LVLMs) in leveraging large-scale data and advanced training paradigms. In this paper, we try to bridge this gap by introducing ETP-R1, a framework that applies the paradigm of scaling up data and Reinforcement Fine-Tuning (RFT) to a graph-based VLN-CE model. To build a strong foundation, we first construct a high-quality, large-scale pretraining dataset using the Gemini API. This dataset consists of diverse, low-hallucination instructions for topological trajectories, providing rich supervision for our graph-based policy to map language to topological paths. This foundation is further strengthened by unifying data from both R2R and RxR tasks for joint pretraining. Building on this, we introduce a three-stage training paradigm, which culminates in the first application of closed-loop, online RFT to a graph-based VLN-CE model, powered by the Group Relative Policy Optimization (GRPO) algorithm. Extensive experiments demonstrate that our approach is highly effective, establishing new state-of-the-art performance across all major metrics on both the R2R-CE and RxR-CE benchmarks. Our code is available at https://github.com/Cepillar/ETP-R1.",
+          "selectionReason": "Directly builds on graph-based methods for topological abstraction and planning in VLN-CE, refining topological planning for continuous environments, aligning with semantic topological mapping and long-horizon planning philosophy."
+        },
+        {
+          "paperId": "de2984f12b67ddb7e703820a272fe296c8b4d162",
+          "title": "LookPlanGraph: Embodied Instruction Following Method with VLM Graph Augmentation",
+          "year": 2025,
+          "citationCount": 5,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2512.21243, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2372998751",
+              "name": "Anatoly Onishchenko"
+            },
+            {
+              "authorId": "153780959",
+              "name": "A. Kovalev"
+            },
+            {
+              "authorId": "2238010956",
+              "name": "Aleksandr I. Panov"
+            }
+          ],
+          "abstract": "Methods that use Large Language Models (LLM) as planners for embodied instruction following tasks have become widespread. To successfully complete tasks, the LLM must be grounded in the environment in which the robot operates. One solution is to use a scene graph that contains all the necessary information. Modern methods rely on prebuilt scene graphs and assume that all task-relevant information is available at the start of planning. However, these approaches do not account for changes in the environment that may occur between the graph construction and the task execution. We propose LookPlanGraph - a method that leverages a scene graph composed of static assets and object priors. During plan execution, LookPlanGraph continuously updates the graph with relevant objects, either by verifying existing priors or discovering new entities. This is achieved by processing the agents egocentric camera view using a Vision Language Model. We conducted experiments with changed object positions VirtualHome and OmniGibson simulated environments, demonstrating that LookPlanGraph outperforms methods based on predefined static scene graphs. To demonstrate the practical applicability of our approach, we also conducted experiments in a real-world setting. Additionally, we introduce the GraSIF (Graph Scenes for Instruction Following) dataset with automated validation framework, comprising 514 tasks drawn from SayPlan Office, BEHAVIOR-1K, and VirtualHome RobotHow. Project page available at https://lookplangraph.github.io .",
+          "selectionReason": "Employs scene graphs augmented with VLMs for grounding in embodied instruction following, extending semantic graph representations for navigation planning."
+        },
+        {
+          "paperId": "0435cff870d7e08709e93072f207abcf8eda39d6",
+          "title": "SpatialNav: Leveraging Spatial Scene Graphs for Zero-Shot Vision-and-Language Navigation",
+          "year": 2026,
+          "citationCount": 0,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2601.06806, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2223697026",
+              "name": "Jiwen Zhang"
+            },
+            {
+              "authorId": "2109967493",
+              "name": "Zejun Li"
+            },
+            {
+              "authorId": "2363177846",
+              "name": "Siyuan Wang"
+            },
+            {
+              "authorId": "2264605902",
+              "name": "Xiangyu Shi"
+            },
+            {
+              "authorId": "2290027793",
+              "name": "Zhongyu Wei"
+            },
+            {
+              "authorId": "2404242638",
+              "name": "Qi Wu"
+            }
+          ],
+          "abstract": "Although learning-based vision-and-language navigation (VLN) agents can learn spatial knowledge implicitly from large-scale training data, zero-shot VLN agents lack this process, relying primarily on local observations for navigation, which leads to inefficient exploration and a significant performance gap. To deal with the problem, we consider a zero-shot VLN setting that agents are allowed to fully explore the environment before task execution. Then, we construct the Spatial Scene Graph (SSG) to explicitly capture global spatial structure and semantics in the explored environment. Based on the SSG, we introduce SpatialNav, a zero-shot VLN agent that integrates an agent-centric spatial map, a compass-aligned visual representation, and a remote object localization strategy for efficient navigation. Comprehensive experiments in both discrete and continuous environments demonstrate that SpatialNav significantly outperforms existing zero-shot agents and clearly narrows the gap with state-of-the-art learning-based methods. Such results highlight the importance of global spatial representations for generalizable navigation.",
+          "selectionReason": "Uses spatial scene graphs to enable efficient exploration and spatial reasoning in zero-shot VLN, a clear descendant of graph architectures for semantic topological mapping."
+        },
+        {
+          "paperId": "d1e4fdd2d7c78fe6afcaae975ed3c4a1c6f20e99",
+          "title": "USS-Nav: Unified Spatio-Semantic Scene Graph for Lightweight UAV Zero-Shot Object Navigation",
+          "year": 2026,
+          "citationCount": 0,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2602.00708, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2322943252",
+              "name": "Weiqi Gai"
+            },
+            {
+              "authorId": "1726030043",
+              "name": "Yuman Gao"
+            },
+            {
+              "authorId": "2293552465",
+              "name": "Yuan Zhou"
+            },
+            {
+              "authorId": null,
+              "name": "Yufan Xie"
+            },
+            {
+              "authorId": "2408476503",
+              "name": "Zhiyang Liu"
+            },
+            {
+              "authorId": "2274079622",
+              "name": "Yuze Wu"
+            },
+            {
+              "authorId": null,
+              "name": "Xin Zhou"
+            },
+            {
+              "authorId": null,
+              "name": "Fei Gao"
+            },
+            {
+              "authorId": null,
+              "name": "Zhijun Meng"
+            }
+          ],
+          "abstract": "Zero-Shot Object Navigation in unknown environments poses significant challenges for Unmanned Aerial Vehicles (UAVs) due to the conflict between high-level semantic reasoning requirements and limited onboard computational resources. To address this, we present USS-Nav, a lightweight framework that incrementally constructs a Unified Spatio-Semantic scene graph and enables efficient Large Language Model (LLM)-augmented Zero-Shot Object Navigation in unknown environments. Specifically, we introduce an incremental Spatial Connectivity Graph generation method utilizing polyhedral expansion to capture global geometric topology, which is dynamically partitioned into semantic regions via graph clustering. Concurrently, open-vocabulary object semantics are instantiated and anchored to this topology to form a hierarchical environmental representation. Leveraging this hierarchical structure, we present a coarse-to-fine exploration strategy: LLM grounded in the scene graph's semantics to determine global target regions, while a local planner optimizes frontier coverage based on information gain. Experimental results demonstrate that our framework outperforms state-of-the-art methods in terms of computational efficiency and real-time update frequency (15 Hz) on a resource-constrained platform. Furthermore, ablation studies confirm the effectiveness of our framework, showing substantial improvements in Success weighted by Path Length (SPL). The source code will be made publicly available to foster further research.",
+          "selectionReason": "Introduces unified spatio-semantic scene graphs for zero-shot object navigation, refining lightweight semantic graph methods akin to HOZ++ object-zone graphs."
+        }
+      ],
+      "subThreads": []
+    },
+    {
+      "id": "t_em0x2930y",
+      "theme": "Interaction-free supervised learning of potential functions on semantic maps for modular ObjectGoal navigation, shifting from graph-based topological representations and planning to dense map-conditioned potentials with low-compute training.",
+      "spawnYear": 2022,
+      "spawnPaper": {
+        "paperId": "0c6af0a9da38e4af39f54d5a1455a76e38f008c9",
+        "title": "PONI: Potential Functions for ObjectGoal Navigation with Interaction-free Learning",
+        "year": 2022,
+        "citationCount": 213,
+        "openAccessPdf": {
+          "url": "https://arxiv.org/pdf/2201.10029",
+          "status": "GREEN",
+          "license": null,
+          "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2201.10029, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+        },
+        "authors": [
+          {
+            "authorId": "21810992",
+            "name": "Santhosh K. Ramakrishnan"
+          },
+          {
+            "authorId": "2142753065",
+            "name": "D. Chaplot"
+          },
+          {
+            "authorId": "1390024605",
+            "name": "Ziad Al-Halah"
+          },
+          {
+            "authorId": "153652147",
+            "name": "J. Malik"
+          },
+          {
+            "authorId": "1794409",
+            "name": "K. Grauman"
+          }
+        ],
+        "abstract": "State-of-the-art approaches to ObjectGoal navigation (ObjectNav) rely on reinforcement learning and typically require significant computational resources and time for learning. We propose Potential functions for ObjectGoal Navigation with Interaction-free learning (PONI), a modular approach that disentangles the skills of 'where to look?’ for an object and 'how to navigate to $(x,\\ y)$?’. Our key insight is that 'where to look?’ can be treated purely as a perception problem, and learned without environment interactions. To address this, we propose a network that predicts two complementary potential functions conditioned on a semantic map and uses them to decide where to look for an unseen object. We train the potential function network using supervised learning on a passive dataset of top-down semantic maps, and integrate it into a modular framework to perform ObjectNav. Experiments on Gibson and Matterport3D demonstrate that our method achieves the stateof-the-art for ObjectNav while incurring up to $1,600\\times less$ computational cost for training. Code and pre-trained models are available.11Website: https://vision.cs.utexas.edu/projects/poni/",
+        "selectionReason": "Co-authored by D. Chaplot (direct author lineage from existing papers); modular approach for ObjectGoal Navigation in Habitat-like settings, refining semantic exploration methods."
+      },
+      "papers": [
+        {
+          "paperId": "0c6af0a9da38e4af39f54d5a1455a76e38f008c9",
+          "title": "PONI: Potential Functions for ObjectGoal Navigation with Interaction-free Learning",
+          "year": 2022,
+          "citationCount": 213,
+          "openAccessPdf": {
+            "url": "https://arxiv.org/pdf/2201.10029",
+            "status": "GREEN",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2201.10029, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "21810992",
+              "name": "Santhosh K. Ramakrishnan"
+            },
+            {
+              "authorId": "2142753065",
+              "name": "D. Chaplot"
+            },
+            {
+              "authorId": "1390024605",
+              "name": "Ziad Al-Halah"
+            },
+            {
+              "authorId": "153652147",
+              "name": "J. Malik"
+            },
+            {
+              "authorId": "1794409",
+              "name": "K. Grauman"
+            }
+          ],
+          "abstract": "State-of-the-art approaches to ObjectGoal navigation (ObjectNav) rely on reinforcement learning and typically require significant computational resources and time for learning. We propose Potential functions for ObjectGoal Navigation with Interaction-free learning (PONI), a modular approach that disentangles the skills of 'where to look?’ for an object and 'how to navigate to $(x,\\ y)$?’. Our key insight is that 'where to look?’ can be treated purely as a perception problem, and learned without environment interactions. To address this, we propose a network that predicts two complementary potential functions conditioned on a semantic map and uses them to decide where to look for an unseen object. We train the potential function network using supervised learning on a passive dataset of top-down semantic maps, and integrate it into a modular framework to perform ObjectNav. Experiments on Gibson and Matterport3D demonstrate that our method achieves the stateof-the-art for ObjectNav while incurring up to $1,600\\times less$ computational cost for training. Code and pre-trained models are available.11Website: https://vision.cs.utexas.edu/projects/poni/",
+          "selectionReason": "Co-authored by D. Chaplot (direct author lineage from existing papers); modular approach for ObjectGoal Navigation in Habitat-like settings, refining semantic exploration methods."
+        }
+      ],
+      "subThreads": []
+    },
+    {
+      "id": "t_a7c61o4j5",
+      "theme": "Structure-free topometric mapping leveraging 3D geometric foundation models for scalable, collaborative multi-session localization and on-demand reconstruction, shifting from GNN-based semantic graphs to optimization-driven submap alignment in real-world navigation.",
+      "spawnYear": 2026,
+      "spawnPaper": {
+        "paperId": "9413ed19a18a592f3cca890974e66ec7d7de06ce",
+        "title": "OpenNavMap: Structure-Free Topometric Mapping via Large-Scale Collaborative Localization",
+        "year": 2026,
+        "citationCount": 1,
+        "openAccessPdf": {
+          "url": "",
+          "status": null,
+          "license": null,
+          "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2601.12291, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+        },
+        "authors": [
+          {
+            "authorId": "2325953467",
+            "name": "Jianhao Jiao"
+          },
+          {
+            "authorId": "2405837724",
+            "name": "Changkun Liu"
+          },
+          {
+            "authorId": "2258452492",
+            "name": "Jingwen Yu"
+          },
+          {
+            "authorId": "2348790044",
+            "name": "Boyi Liu"
+          },
+          {
+            "authorId": "2370951476",
+            "name": "Qianyi Zhang"
+          },
+          {
+            "authorId": "2326071166",
+            "name": "Yue Wang"
+          },
+          {
+            "authorId": "2324696582",
+            "name": "Dimitrios Kanoulas"
+          }
+        ],
+        "abstract": "Scalable and maintainable map representations are fundamental to enabling large-scale visual navigation and facilitating the deployment of robots in real-world environments. While collaborative localization across multi-session mapping enhances efficiency, traditional structure-based methods struggle with high maintenance costs and fail in feature-less environments or under significant viewpoint changes typical of crowd-sourced data. To address this, we propose OPENNAVMAP, a lightweight, structure-free topometric system leveraging 3D geometric foundation models for on-demand reconstruction. Our method unifies dynamic programming-based sequence matching, geometric verification, and confidence-calibrated optimization to robust, coarse-to-fine submap alignment without requiring pre-built 3D models. Evaluations on the Map-Free benchmark demonstrate superior accuracy over structure-from-motion and regression baselines, achieving an average translation error of 0.62m. Furthermore, the system maintains global consistency across 15km of multi-session data with an absolute trajectory error below 3m for map merging. Finally, we validate practical utility through 12 successful autonomous image-goal navigation tasks on simulated and physical robots. Code and datasets will be publicly available in https://rpl-cs-ucl.github.io/OpenNavMap_page.",
+        "selectionReason": "Structure-free topometric mapping for scalable visual navigation refines topological mapping philosophy for long-horizon embodied navigation."
+      },
+      "papers": [
+        {
+          "paperId": "9413ed19a18a592f3cca890974e66ec7d7de06ce",
+          "title": "OpenNavMap: Structure-Free Topometric Mapping via Large-Scale Collaborative Localization",
+          "year": 2026,
+          "citationCount": 1,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2601.12291, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2325953467",
+              "name": "Jianhao Jiao"
+            },
+            {
+              "authorId": "2405837724",
+              "name": "Changkun Liu"
+            },
+            {
+              "authorId": "2258452492",
+              "name": "Jingwen Yu"
+            },
+            {
+              "authorId": "2348790044",
+              "name": "Boyi Liu"
+            },
+            {
+              "authorId": "2370951476",
+              "name": "Qianyi Zhang"
+            },
+            {
+              "authorId": "2326071166",
+              "name": "Yue Wang"
+            },
+            {
+              "authorId": "2324696582",
+              "name": "Dimitrios Kanoulas"
+            }
+          ],
+          "abstract": "Scalable and maintainable map representations are fundamental to enabling large-scale visual navigation and facilitating the deployment of robots in real-world environments. While collaborative localization across multi-session mapping enhances efficiency, traditional structure-based methods struggle with high maintenance costs and fail in feature-less environments or under significant viewpoint changes typical of crowd-sourced data. To address this, we propose OPENNAVMAP, a lightweight, structure-free topometric system leveraging 3D geometric foundation models for on-demand reconstruction. Our method unifies dynamic programming-based sequence matching, geometric verification, and confidence-calibrated optimization to robust, coarse-to-fine submap alignment without requiring pre-built 3D models. Evaluations on the Map-Free benchmark demonstrate superior accuracy over structure-from-motion and regression baselines, achieving an average translation error of 0.62m. Furthermore, the system maintains global consistency across 15km of multi-session data with an absolute trajectory error below 3m for map merging. Finally, we validate practical utility through 12 successful autonomous image-goal navigation tasks on simulated and physical robots. Code and datasets will be publicly available in https://rpl-cs-ucl.github.io/OpenNavMap_page.",
+          "selectionReason": "Structure-free topometric mapping for scalable visual navigation refines topological mapping philosophy for long-horizon embodied navigation."
+        }
+      ],
+      "subThreads": []
+    },
+    {
+      "id": "t_3y7wxdd8h",
+      "theme": "LLM-augmented lightweight unified spatio-semantic scene graphs for real-time zero-shot object navigation on resource-constrained UAVs, shifting from GNN-based topological mapping in simulators to foundation model-grounded hierarchical planning in aerial robotics",
+      "spawnYear": 2026,
+      "spawnPaper": {
+        "paperId": "d1e4fdd2d7c78fe6afcaae975ed3c4a1c6f20e99",
+        "title": "USS-Nav: Unified Spatio-Semantic Scene Graph for Lightweight UAV Zero-Shot Object Navigation",
+        "year": 2026,
+        "citationCount": 0,
+        "openAccessPdf": {
+          "url": "",
+          "status": null,
+          "license": null,
+          "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2602.00708, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+        },
+        "authors": [
+          {
+            "authorId": "2322943252",
+            "name": "Weiqi Gai"
+          },
+          {
+            "authorId": "1726030043",
+            "name": "Yuman Gao"
+          },
+          {
+            "authorId": "2293552465",
+            "name": "Yuan Zhou"
+          },
+          {
+            "authorId": null,
+            "name": "Yufan Xie"
+          },
+          {
+            "authorId": "2408476503",
+            "name": "Zhiyang Liu"
+          },
+          {
+            "authorId": "2274079622",
+            "name": "Yuze Wu"
+          },
+          {
+            "authorId": null,
+            "name": "Xin Zhou"
+          },
+          {
+            "authorId": null,
+            "name": "Fei Gao"
+          },
+          {
+            "authorId": null,
+            "name": "Zhijun Meng"
+          }
+        ],
+        "abstract": "Zero-Shot Object Navigation in unknown environments poses significant challenges for Unmanned Aerial Vehicles (UAVs) due to the conflict between high-level semantic reasoning requirements and limited onboard computational resources. To address this, we present USS-Nav, a lightweight framework that incrementally constructs a Unified Spatio-Semantic scene graph and enables efficient Large Language Model (LLM)-augmented Zero-Shot Object Navigation in unknown environments. Specifically, we introduce an incremental Spatial Connectivity Graph generation method utilizing polyhedral expansion to capture global geometric topology, which is dynamically partitioned into semantic regions via graph clustering. Concurrently, open-vocabulary object semantics are instantiated and anchored to this topology to form a hierarchical environmental representation. Leveraging this hierarchical structure, we present a coarse-to-fine exploration strategy: LLM grounded in the scene graph's semantics to determine global target regions, while a local planner optimizes frontier coverage based on information gain. Experimental results demonstrate that our framework outperforms state-of-the-art methods in terms of computational efficiency and real-time update frequency (15 Hz) on a resource-constrained platform. Furthermore, ablation studies confirm the effectiveness of our framework, showing substantial improvements in Success weighted by Path Length (SPL). The source code will be made publicly available to foster further research.",
+        "selectionReason": "Introduces unified spatio-semantic scene graphs for zero-shot object navigation, refining lightweight semantic graph methods akin to HOZ++ object-zone graphs."
+      },
+      "papers": [
+        {
+          "paperId": "d1e4fdd2d7c78fe6afcaae975ed3c4a1c6f20e99",
+          "title": "USS-Nav: Unified Spatio-Semantic Scene Graph for Lightweight UAV Zero-Shot Object Navigation",
+          "year": 2026,
+          "citationCount": 0,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2602.00708, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2322943252",
+              "name": "Weiqi Gai"
+            },
+            {
+              "authorId": "1726030043",
+              "name": "Yuman Gao"
+            },
+            {
+              "authorId": "2293552465",
+              "name": "Yuan Zhou"
+            },
+            {
+              "authorId": null,
+              "name": "Yufan Xie"
+            },
+            {
+              "authorId": "2408476503",
+              "name": "Zhiyang Liu"
+            },
+            {
+              "authorId": "2274079622",
+              "name": "Yuze Wu"
+            },
+            {
+              "authorId": null,
+              "name": "Xin Zhou"
+            },
+            {
+              "authorId": null,
+              "name": "Fei Gao"
+            },
+            {
+              "authorId": null,
+              "name": "Zhijun Meng"
+            }
+          ],
+          "abstract": "Zero-Shot Object Navigation in unknown environments poses significant challenges for Unmanned Aerial Vehicles (UAVs) due to the conflict between high-level semantic reasoning requirements and limited onboard computational resources. To address this, we present USS-Nav, a lightweight framework that incrementally constructs a Unified Spatio-Semantic scene graph and enables efficient Large Language Model (LLM)-augmented Zero-Shot Object Navigation in unknown environments. Specifically, we introduce an incremental Spatial Connectivity Graph generation method utilizing polyhedral expansion to capture global geometric topology, which is dynamically partitioned into semantic regions via graph clustering. Concurrently, open-vocabulary object semantics are instantiated and anchored to this topology to form a hierarchical environmental representation. Leveraging this hierarchical structure, we present a coarse-to-fine exploration strategy: LLM grounded in the scene graph's semantics to determine global target regions, while a local planner optimizes frontier coverage based on information gain. Experimental results demonstrate that our framework outperforms state-of-the-art methods in terms of computational efficiency and real-time update frequency (15 Hz) on a resource-constrained platform. Furthermore, ablation studies confirm the effectiveness of our framework, showing substantial improvements in Success weighted by Path Length (SPL). The source code will be made publicly available to foster further research.",
+          "selectionReason": "Introduces unified spatio-semantic scene graphs for zero-shot object navigation, refining lightweight semantic graph methods akin to HOZ++ object-zone graphs."
+        }
+      ],
+      "subThreads": []
+    },
+    {
+      "id": "t_6xntm7uy5",
+      "theme": "Modular supervised paradigms combining semantic node features with coarse geometry for robust SLAM under noisy actuation in novel environments.",
+      "spawnYear": 2020,
+      "spawnPaper": {
+        "title": "Neural Topological SLAM for Visual Navigation",
+        "authors": [
+          {
+            "name": "Devendra Singh Chaplot"
+          },
+          {
+            "name": "Ruslan Salakhutdinov"
+          },
+          {
+            "name": "Abhinav Gupta"
+          },
+          {
+            "name": "Saurabh Gupta"
+          }
+        ],
+        "year": 2020
+      },
+      "papers": [
+        {
+          "title": "Neural Topological SLAM for Visual Navigation",
+          "abstract": "This paper studies the problem of image-goal navigation which involves navigating to the location indicated by a goal image in a novel previously unseen environment. To tackle this problem, we design topological representations for space that effectively leverage semantics and afford approximate geometric reasoning. At the heart of our representations are nodes with associated semantic features, that are interconnected using coarse geometric information. We describe supervised learning-based algorithms that can build, maintain and use such representations under noisy actuation. Experimental study in visually and physically realistic simulation suggests that our method builds effective representations that capture structural regularities and efficiently solve long-horizon navigation problems. We observe a relative improvement of more than 50% over existing methods that study this task.",
+          "year": 2020,
+          "authors": [
+            {
+              "name": "Devendra Singh Chaplot"
+            },
+            {
+              "name": "Ruslan Salakhutdinov"
+            },
+            {
+              "name": "Abhinav Gupta"
+            },
+            {
+              "name": "Saurabh Gupta"
+            }
+          ],
+          "nickname": "Chaplot et al., 2020"
+        },
+        {
+          "paperId": "40c7ea756b1f4ca4e91ed6283094ce6d7756a75c",
+          "title": "SLAM-Free Visual Navigation with Hierarchical Vision-Language Perception and Coarse-to-Fine Semantic Topological Planning",
+          "year": 2025,
+          "citationCount": 2,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2509.20739, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2293364034",
+              "name": "Guoyang Zhao"
+            },
+            {
+              "authorId": "2111162722",
+              "name": "Yudong Li"
+            },
+            {
+              "authorId": "2273988951",
+              "name": "Weiqing Qi"
+            },
+            {
+              "authorId": "2379887775",
+              "name": "Kai Zhang"
+            },
+            {
+              "authorId": "2380570011",
+              "name": "Bonan Liu"
+            },
+            {
+              "authorId": "2382574506",
+              "name": "Kai Chen"
+            },
+            {
+              "authorId": "2299890898",
+              "name": "Haoang Li"
+            },
+            {
+              "authorId": "2349063754",
+              "name": "Jun Ma"
+            }
+          ],
+          "abstract": "Conventional SLAM pipelines for legged robot navigation are fragile under rapid motion, calibration demands, and sensor drift, while offering limited semantic reasoning for task-driven exploration. To deal with these issues, we propose a vision-only, SLAM-free navigation framework that replaces dense geometry with semantic reasoning and lightweight topological representations. A hierarchical vision-language perception module fuses scene-level context with object-level cues for robust semantic inference. And a semantic-probabilistic topological map supports coarse-to-fine planning: LLM-based global reasoning for subgoal selection and vision-based local planning for obstacle avoidance. Integrated with reinforcement-learning locomotion controllers, the framework is deployable across diverse legged robot platforms. Experiments in simulation and real-world settings demonstrate consistent improvements in semantic accuracy, planning quality, and navigation success, while ablation studies further showcase the necessity of both hierarchical perception and fine local planning. This work introduces a new paradigm for SLAM-free, vision-language-driven navigation, shifting robotic exploration from geometry-centric mapping to semantics-driven decision making.",
+          "selectionReason": "SLAM-free framework addressing SLAM fragility under noisy actuation/rapid motion; uses coarse-to-fine semantic topological planning, direct philosophical descendant of modular semantic nodes + coarse geometry for robust nav."
+        },
+        {
+          "paperId": "27fd66c9269c035fac3af68a82bb7689a8835e70",
+          "title": "TANGO: Traversability-Aware Navigation with Local Metric Control for Topological Goals",
+          "year": 2025,
+          "citationCount": 3,
+          "openAccessPdf": {
+            "url": "",
+            "status": null,
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2509.08699, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2174177154",
+              "name": "Stefan Podgorski"
+            },
+            {
+              "authorId": "2256989539",
+              "name": "Sourav Garg"
+            },
+            {
+              "authorId": "2328011981",
+              "name": "Mehdi Hosseinzadeh"
+            },
+            {
+              "authorId": "2300370606",
+              "name": "Lachlan Mares"
+            },
+            {
+              "authorId": "1757942",
+              "name": "Feras Dayoub"
+            },
+            {
+              "authorId": "2291135318",
+              "name": "Ian Reid"
+            }
+          ],
+          "abstract": "Visual navigation in robotics traditionally relies on globally-consistent 3D maps or learned controllers, which can be computationally expensive and difficult to generalize across diverse environments. In this work, we present a novel RGB-only, object-level topometric navigation pipeline that enables zero-shot, long-horizon robot navigation without requiring 3D maps or pre-trained controllers. Our approach integrates global topological path planning with local metric trajectory control, allowing the robot to navigate towards object-level sub-goals while avoiding obstacles. We address key limitations of previous methods by continuously predicting local trajectory using monocular depth and traversability estimation, and in-corporating an auto-switching mechanism that falls back to a baseline controller when necessary. The system operates using foundational models, ensuring open-set applicability without the need for domain-specific fine-tuning. We demonstrate the effectiveness of our method in both simulated environments and real-world tests, highlighting its robustness and deployability. Our approach outperforms existing state-of-the-art methods, offering a more adaptable and effective solution for visual navigation in open-set environments. The source code is made publicly available: https://github.com/podgorki/TANGO.",
+          "selectionReason": "RGB-only object-level (semantic) topometric nav with local metric control for topological goals; avoids full SLAM expense, aligns with coarse geometry + semantic features for robust nav."
+        }
+      ],
+      "subThreads": []
+    },
+    {
+      "id": "t_rjafs6t2i",
+      "theme": "Hierarchical vision transformers (Swin, PVT lineages) as efficient, scalable convolutional-free backbones for high-resolution dense prediction and restoration tasks, parallel to flat transformer or CNN-based representations.",
+      "spawnYear": 2021,
+      "spawnPaper": {
+        "paperId": "c8b25fab5608c3e033d34b4483ec47e68ba109b7",
+        "title": "Swin Transformer: Hierarchical Vision Transformer using Shifted Windows",
+        "year": 2021,
+        "citationCount": 29036,
+        "openAccessPdf": {
+          "url": "http://arxiv.org/pdf/2103.14030",
+          "status": "GREEN",
+          "license": null,
+          "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2103.14030, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+        },
+        "authors": [
+          {
+            "authorId": "2109371439",
+            "name": "Ze Liu"
+          },
+          {
+            "authorId": "51091819",
+            "name": "Yutong Lin"
+          },
+          {
+            "authorId": "2112823372",
+            "name": "Yue Cao"
+          },
+          {
+            "authorId": "1823518756",
+            "name": "Han Hu"
+          },
+          {
+            "authorId": "2107995927",
+            "name": "Yixuan Wei"
+          },
+          {
+            "authorId": "2148904543",
+            "name": "Zheng Zhang"
+          },
+          {
+            "authorId": "145676588",
+            "name": "Stephen Lin"
+          },
+          {
+            "authorId": "2261753424",
+            "name": "B. Guo"
+          }
+        ],
+        "abstract": "This paper presents a new vision Transformer, called Swin Transformer, that capably serves as a general-purpose backbone for computer vision. Challenges in adapting Transformer from language to vision arise from differences between the two domains, such as large variations in the scale of visual entities and the high resolution of pixels in images compared to words in text. To address these differences, we propose a hierarchical Transformer whose representation is computed with Shifted windows. The shifted windowing scheme brings greater efficiency by limiting self-attention computation to non-overlapping local windows while also allowing for cross-window connection. This hierarchical architecture has the flexibility to model at various scales and has linear computational complexity with respect to image size. These qualities of Swin Transformer make it compatible with a broad range of vision tasks, including image classification (87.3 top-1 accuracy on ImageNet-1K) and dense prediction tasks such as object detection (58.7 box AP and 51.1 mask AP on COCO test-dev) and semantic segmentation (53.5 mIoU on ADE20K val). Its performance surpasses the previous state-of-the-art by a large margin of +2.7 box AP and +2.6 mask AP on COCO, and +3.2 mIoU on ADE20K, demonstrating the potential of Transformer-based models as vision backbones. The hierarchical design and the shifted window approach also prove beneficial for all-MLP architectures. The code and models are publicly available at https://github.com/microsoft/Swin-Transformer."
+      },
+      "papers": [
+        {
+          "paperId": "c8b25fab5608c3e033d34b4483ec47e68ba109b7",
+          "title": "Swin Transformer: Hierarchical Vision Transformer using Shifted Windows",
+          "year": 2021,
+          "citationCount": 29036,
+          "openAccessPdf": {
+            "url": "http://arxiv.org/pdf/2103.14030",
+            "status": "GREEN",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2103.14030, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2109371439",
+              "name": "Ze Liu"
+            },
+            {
+              "authorId": "51091819",
+              "name": "Yutong Lin"
+            },
+            {
+              "authorId": "2112823372",
+              "name": "Yue Cao"
+            },
+            {
+              "authorId": "1823518756",
+              "name": "Han Hu"
+            },
+            {
+              "authorId": "2107995927",
+              "name": "Yixuan Wei"
+            },
+            {
+              "authorId": "2148904543",
+              "name": "Zheng Zhang"
+            },
+            {
+              "authorId": "145676588",
+              "name": "Stephen Lin"
+            },
+            {
+              "authorId": "2261753424",
+              "name": "B. Guo"
+            }
+          ],
+          "abstract": "This paper presents a new vision Transformer, called Swin Transformer, that capably serves as a general-purpose backbone for computer vision. Challenges in adapting Transformer from language to vision arise from differences between the two domains, such as large variations in the scale of visual entities and the high resolution of pixels in images compared to words in text. To address these differences, we propose a hierarchical Transformer whose representation is computed with Shifted windows. The shifted windowing scheme brings greater efficiency by limiting self-attention computation to non-overlapping local windows while also allowing for cross-window connection. This hierarchical architecture has the flexibility to model at various scales and has linear computational complexity with respect to image size. These qualities of Swin Transformer make it compatible with a broad range of vision tasks, including image classification (87.3 top-1 accuracy on ImageNet-1K) and dense prediction tasks such as object detection (58.7 box AP and 51.1 mask AP on COCO test-dev) and semantic segmentation (53.5 mIoU on ADE20K val). Its performance surpasses the previous state-of-the-art by a large margin of +2.7 box AP and +2.6 mask AP on COCO, and +3.2 mIoU on ADE20K, demonstrating the potential of Transformer-based models as vision backbones. The hierarchical design and the shifted window approach also prove beneficial for all-MLP architectures. The code and models are publicly available at https://github.com/microsoft/Swin-Transformer."
+        },
+        {
+          "paperId": "8fb1c04dab87ca6c116495e4d03c46c9547e4ec3",
+          "title": "Pyramid Vision Transformer: A Versatile Backbone for Dense Prediction without Convolutions",
+          "year": 2021,
+          "citationCount": 4629,
+          "openAccessPdf": {
+            "url": "https://arxiv.org/pdf/2102.12122",
+            "status": "GREEN",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2102.12122, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "71074736",
+              "name": "Wenhai Wang"
+            },
+            {
+              "authorId": "41020000",
+              "name": "Enze Xie"
+            },
+            {
+              "authorId": null,
+              "name": "Xiang Li"
+            },
+            {
+              "authorId": "23999143",
+              "name": "Deng-Ping Fan"
+            },
+            {
+              "authorId": "50982078",
+              "name": "Kaitao Song"
+            },
+            {
+              "authorId": "152335674",
+              "name": "Ding Liang"
+            },
+            {
+              "authorId": "144720255",
+              "name": "Tong Lu"
+            },
+            {
+              "authorId": "144389940",
+              "name": "P. Luo"
+            },
+            {
+              "authorId": "144082425",
+              "name": "Ling Shao"
+            }
+          ],
+          "abstract": "Although convolutional neural networks (CNNs) have achieved great success in computer vision, this work investigates a simpler, convolution-free backbone network use-fid for many dense prediction tasks. Unlike the recently-proposed Vision Transformer (ViT) that was designed for image classification specifically, we introduce the Pyramid Vision Transformer (PVT), which overcomes the difficulties of porting Transformer to various dense prediction tasks. PVT has several merits compared to current state of the arts. (1) Different from ViT that typically yields low-resolution outputs and incurs high computational and memory costs, PVT not only can be trained on dense partitions of an image to achieve high output resolution, which is important for dense prediction, but also uses a progressive shrinking pyramid to reduce the computations of large feature maps. (2) PVT inherits the advantages of both CNN and Transformer, making it a unified backbone for various vision tasks without convolutions, where it can be used as a direct replacement for CNN backbones. (3) We validate PVT through extensive experiments, showing that it boosts the performance of many downstream tasks, including object detection, instance and semantic segmentation. For example, with a comparable number of parameters, PVT+RetinaNet achieves 40.4 AP on the COCO dataset, surpassing ResNet50+RetinNet (36.3 AP) by 4.1 absolute AP (see Figure 2). We hope that PVT could, serre as an alternative and useful backbone for pixel-level predictions and facilitate future research."
+        },
+        {
+          "paperId": "be0fbb810583930c071d0b9b2c5187fe260783f5",
+          "title": "Swin Transformer V2: Scaling Up Capacity and Resolution",
+          "year": 2021,
+          "citationCount": 2462,
+          "openAccessPdf": {
+            "url": "https://arxiv.org/pdf/2111.09883",
+            "status": "GREEN",
+            "license": null,
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2111.09883, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "2109371439",
+              "name": "Ze Liu"
+            },
+            {
+              "authorId": "1823518756",
+              "name": "Han Hu"
+            },
+            {
+              "authorId": "51091819",
+              "name": "Yutong Lin"
+            },
+            {
+              "authorId": "32532300",
+              "name": "Zhuliang Yao"
+            },
+            {
+              "authorId": "2090394064",
+              "name": "Zhenda Xie"
+            },
+            {
+              "authorId": "2107995927",
+              "name": "Yixuan Wei"
+            },
+            {
+              "authorId": "2136771175",
+              "name": "Jia Ning"
+            },
+            {
+              "authorId": "2112823372",
+              "name": "Yue Cao"
+            },
+            {
+              "authorId": "2148904543",
+              "name": "Zheng Zhang"
+            },
+            {
+              "authorId": "145307652",
+              "name": "Li Dong"
+            },
+            {
+              "authorId": "49807919",
+              "name": "Furu Wei"
+            },
+            {
+              "authorId": "2261753424",
+              "name": "B. Guo"
+            }
+          ],
+          "abstract": "We present techniques for scaling Swin Transformer [35] up to 3 billion parameters and making it capable of training with images of up to 1,536x1,536 resolution. By scaling up capacity and resolution, Swin Transformer sets new records on four representative vision benchmarks: 84.0% top-1 accuracy on ImageNet- V2 image classification, 63.1 / 54.4 box / mask mAP on COCO object detection, 59.9 mIoU on ADE20K semantic segmentation, and 86.8% top-1 accuracy on Kinetics-400 video action classification. We tackle issues of training instability, and study how to effectively transfer models pre-trained at low resolutions to higher resolution ones. To this aim, several novel technologies are proposed: 1) a residual post normalization technique and a scaled cosine attention approach to improve the stability of large vision models; 2) a log-spaced continuous position bias technique to effectively transfer models pre-trained at low-resolution images and windows to their higher-resolution counterparts. In addition, we share our crucial implementation details that lead to significant savings of GPU memory consumption and thus make it feasi-ble to train large vision models with regular GPUs. Using these techniques and self-supervised pre-training, we suc-cessfully train a strong 3 billion Swin Transformer model and effectively transfer it to various vision tasks involving high-resolution images or windows, achieving the state-of-the-art accuracy on a variety of benchmarks. Code is avail-able at https://github.com/microsoft/Swin-Transformer."
+        },
+        {
+          "paperId": "67040b931c1a384426c44ae73f9553e97f08cf6a",
+          "title": "PVT v2: Improved baselines with Pyramid Vision Transformer",
+          "year": 2021,
+          "citationCount": 2152,
+          "openAccessPdf": {
+            "url": "https://link.springer.com/content/pdf/10.1007/s41095-022-0274-8.pdf",
+            "status": "GOLD",
+            "license": "CCBY",
+            "disclaimer": "Notice: Paper or abstract available at https://arxiv.org/abs/2106.13797, which is subject to the license by the author or copyright owner provided with this content. Please go to the source to verify the license and copyright information for your use."
+          },
+          "authors": [
+            {
+              "authorId": "71074736",
+              "name": "Wenhai Wang"
+            },
+            {
+              "authorId": "41020000",
+              "name": "Enze Xie"
+            },
+            {
+              "authorId": "2144439048",
+              "name": "Xiang Li"
+            },
+            {
+              "authorId": "23999143",
+              "name": "Deng-Ping Fan"
+            },
+            {
+              "authorId": "50982078",
+              "name": "Kaitao Song"
+            },
+            {
+              "authorId": "152335674",
+              "name": "Ding Liang"
+            },
+            {
+              "authorId": "2115137018",
+              "name": "Tong Lu"
+            },
+            {
+              "authorId": "144389940",
+              "name": "P. Luo"
+            },
+            {
+              "authorId": "2067609498",
+              "name": "Ling Shao"
+            }
+          ],
+          "abstract": "Transformers have recently lead to encouraging progress in computer vision. In this work, we present new baselines by improving the original Pyramid Vision Transformer (PVT v1) by adding three designs: (i) a linear complexity attention layer, (ii) an overlapping patch embedding, and (iii) a convolutional feed-forward network. With these modifications, PVT v2 reduces the computational complexity of PVT v1 to linearity and provides significant improvements on fundamental vision tasks such as classification, detection, and segmentation. In particular, PVT v2 achieves comparable or better performance than recent work such as the Swin transformer. We hope this work will facilitate state-of-the-art transformer research in computer vision. Code is available at https://github.com/whai362/PVT."
+        }
+      ],
+      "subThreads": []
+    }
+  ],
+  "debugTree": [],
+  "duration": 7102.1,
+  "seedPapers": 1
+}

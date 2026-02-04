@@ -1,0 +1,35 @@
+[
+  {
+    "title": "Neural Topological SLAM for Visual Navigation",
+    "abstract": "This paper studies the problem of image-goal navigation which involves navigating to the location indicated by a goal image in a novel previously unseen environment. To tackle this problem, we design topological representations for space that effectively leverage semantics and afford approximate geometric reasoning. At the heart of our representations are nodes with associated semantic features, that are interconnected using coarse geometric information. We describe supervised learning-based algorithms that can build, maintain and use such representations under noisy actuation.",
+    "year": 2020,
+    "authors": [
+      {"name": "Devendra Singh Chaplot"},
+      {"name": "Ruslan Salakhutdinov"},
+      {"name": "Abhinav Gupta"},
+      {"name": "Saurabh Gupta"}
+    ],
+    "nickname": "Chaplot et al., 2020"
+  },
+  {
+    "title": "ViNT: A Foundation Model for Visual Navigation",
+    "abstract": "Visual Navigation Transformer (ViNT), a foundation model that aims to bring the success of general-purpose pre-trained models to vision-based robotic navigation. ViNT is trained with a general goal-reaching objective that can be used with any navigation dataset, and employs a flexible Transformer-based architecture to learn navigational affordances and enable efficient adaptation to a variety of downstream navigational tasks.",
+    "year": 2023,
+    "authors": [
+      {"name": "Dhruv Shah"},
+      {"name": "A. Sridhar"},
+      {"name": "S. Levine"}
+    ],
+    "nickname": "Shah et al., 2023"
+  },
+  {
+    "title": "PoliFormer: Scaling On-Policy RL with Transformers Results in Masterful Navigators",
+    "abstract": "Scaling reinforcement learning with transformer-based policies trained on massive datasets for emergent navigation capabilities without modular maps or explicit planning.",
+    "year": 2024,
+    "authors": [
+      {"name": "Ramrakhya, R."},
+      {"name": "Batra, D."}
+    ],
+    "nickname": "Ramrakhya et al., 2024"
+  }
+]

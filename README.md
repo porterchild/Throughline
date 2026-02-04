@@ -16,6 +16,30 @@ Throughline solves this by combining:
 
 **Analysis runs in background** - close the popup anytime and check back later.
 
+### Current Status & Iteration Progress (2026-02-03)
+
+The tool has undergone several major iterations to improve lineage tracking and prevent "topic drift":
+
+- **v8-v11: Foundation Building**
+  - Implemented dynamic clustering and broader search queries.
+  - Successfully identified the shift from modular mapping (Chaplot) to foundation models (Levine/ViNT) and VLA models (PaLM-E).
+  - Challenges: Missed specific culminations like GOAT (2023) and OmniVLA (2025) due to strict citation-count requirements and search query bias.
+
+- **v12-v13: Lineage Optimization**
+  - Relaxed lineage constraints to be more "philosophical" and inclusive of lab shifts.
+  - Implemented "Year Saturation" to force the analysis forward through time.
+  - **Issue (v13)**: Encountered "high-citation drift." The inclusive logic allowed the analysis to jump from "modular mapping for navigation" into "generative 3D world reconstruction" (3D mesh generation/Gaussian Splatting) because those papers have very high recent citation counts.
+
+- **v14-v17: Experimental Branching**
+  - Tested highly targeted search queries and domain-specific heuristics.
+  - Successfully identified culminations but realized that domain-specific hardcoding limits the tool's general utility.
+  - Encountered significant API rate limits requiring robust exponential backoff.
+
+- **v18 (Current): True Domain Agnosticism**
+  - **Generalized Query Generation**: LLM now generates 12 diverse search queries based *only* on the seed paper's context, focusing on architectural evolution, scaling, and lab continuations.
+  - **Heuristic Balancing**: Removed all robotics-specific hardcoding. The tool now uses general research patterns (e.g. "successor architectures", "paradigm shifts") to guide discovery.
+  - **Production Throttling**: Implemented a strict 5-second baseline delay with exponential backoff for Semantic Scholar to ensure reliability across long research sessions.
+
 ## Installation
 
 1. Clone/download this repo
