@@ -25,6 +25,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 .cache/
+.ss-cache/
 
 *debug*
 ram.txt
+*.log
