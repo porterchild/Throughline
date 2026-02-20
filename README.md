@@ -1,227 +1,104 @@
 # Throughline
 
-Trace research lineages through time using LLMs and semantic embeddings. Discover "spiritual successors" and same-lab work that traditional citation networks miss.
+Trace research lineages through time using LLMs and the Semantic Scholar API. Discover "spiritual successors" and same-lab work that traditional citation networks miss.
 
 ## What It Does
 
 ResearchRabbit's "related papers" feature misses obvious research lineages when there's no direct citation path. For example, searching from ViNT (2023) might miss NoMaD, LeLaN, and OmniVLA - all obvious successors from the same lab.
 
-Throughline solves this by combining:
+**Important: General-Purpose Design Philosophy**
 
-- **Dual-strategy search**: Both citations API (direct descendants) + recommendations API (semantic similarity)
-- **SPECTRE v2 embeddings** (Semantic Scholar) for semantic paper discovery
-- **LLM-based ranking** (Grok 4.1 Fast via OpenRouter) with full abstracts, authors, and citation counts
-- **Recursive expansion** from seed papers → current year
-- **Sub-thread spawning** when papers diverge into new research directions
+Throughline is designed to work across ALL academic fields - biology, physics, mathematics, computer science, etc. The tool derives ALL exploration context from the seed paper(s) themselves. There is NO domain-specific hardcoding. If you see suggestions to add field-specific keywords, filters, or heuristics, they miss the point. The only domain knowledge comes from what the LLM can infer from the seed paper's abstract, title, and authors. Everything else is "cheating" that breaks generality.
 
-**Analysis runs in background** - close the popup anytime and check back later.
+**Why LLM-guided, not code-driven exploration?**
 
-### Current Status & Iteration Progress (2026-02-03)
+The tool is LLM-based instead of code-based because of the flexibility required. Author/lab lineage happens to be a good proxy for tracking SOTA in fields with weak benchmarks, but it's just one of many threads a researcher might want to follow. In another subfield, there might be strong benchmarks, and the obvious emphasis should be following the progression of the SOTA that way. In another case, the user might not care about SOTA at all — they might want the history of usage of a canonical dataset, or GPU models used in training, or where researchers procured C. Elegans from over time, or the list of physics papers over a citation count with more than 400 words in the abstract. There are countless threads one might want to follow. LLMs have the flexibility to guide the search however the user wants, making structural hardcoding of any single exploration strategy the wrong approach.
 
-The tool has undergone several major iterations to improve lineage tracking and prevent "topic drift":
+## Architecture
 
-- **v8-v11: Foundation Building**
-  - Implemented dynamic clustering and broader search queries.
-  - Successfully identified the shift from modular mapping (Chaplot) to foundation models (Levine/ViNT) and VLA models (PaLM-E).
-  - Challenges: Missed specific culminations like GOAT (2023) and OmniVLA (2025) due to strict citation-count requirements and search query bias.
+### Agent with Tools
 
-- **v12-v13: Lineage Optimization**
-  - Relaxed lineage constraints to be more "philosophical" and inclusive of lab shifts.
-  - Implemented "Year Saturation" to force the analysis forward through time.
-  - **Issue (v13)**: Encountered "high-citation drift." The inclusive logic allowed the analysis to jump from "modular mapping for navigation" into "generative 3D world reconstruction" (3D mesh generation/Gaussian Splatting) because those papers have very high recent citation counts.
+A single LLM agent (Grok 4.1 Fast via OpenRouter) drives the entire exploration. It has access to Semantic Scholar API tools:
 
-- **v14-v17: Experimental Branching**
-  - Tested highly targeted search queries and domain-specific heuristics.
-  - Successfully identified culminations but realized that domain-specific hardcoding limits the tool's general utility.
-  - Encountered significant API rate limits requiring robust exponential backoff.
+- `search_papers` — keyword search
+- `get_paper_citations` — forward citations (who cites this paper)
+- `get_paper_references` — backward references (what this paper cites)
+- `get_recommendations` — similar papers via SS recommendation engine
+- `get_author_papers` — author lookup and their publications
+- `create_track` — organize findings into research threads
+- `add_paper_to_track` — add a discovered paper to a thread
+- `done` — signal exploration is complete
 
-- **v18 (Current): True Domain Agnosticism**
-  - **Generalized Query Generation**: LLM now generates 12 diverse search queries based *only* on the seed paper's context, focusing on architectural evolution, scaling, and lab continuations.
-  - **Heuristic Balancing**: Removed all robotics-specific hardcoding. The tool now uses general research patterns (e.g. "successor architectures", "paradigm shifts") to guide discovery.
-  - **Production Throttling**: Implemented a strict 5-second baseline delay with exponential backoff for Semantic Scholar to ensure reliability across long research sessions.
+The agent gets the seed paper(s) and the user's research criteria, then decides its own exploration strategy — what to search for, what citations to chase, which authors to look up, and how to organize findings into tracks.
 
-## Installation
+### Context Management: Reader Model
 
-1. Clone/download this repo
-2. Chrome → `chrome://extensions/` → Enable "Developer mode"
-3. Click "Load unpacked" → Select the extension folder
-4. Right-click extension icon → Options → Add your OpenRouter API key
+Raw SS API results (50+ papers per call) would quickly bloat the main agent's context window, degrading coherence over many iterations. To solve this, each SS API tool call passes its raw results through a **reader model** before returning to the main agent.
 
-Get OpenRouter key: https://openrouter.ai/keys (free tier available)
+The main agent provides a `focus` string with each tool call describing what it's looking for. The reader model gets:
+- The raw paper list from the API
+- The user's research criteria
+- The main agent's specific focus for this call
+
+The reader returns only the papers it judges relevant, with brief explanations. The main agent never sees the raw dumps — it gets curated, focused results that keep its context clean.
+
+### Context Management Options Considered
+
+Based on research into how ChatGPT, Claude Code, Codex, Perplexity, and agent frameworks handle context bloat:
+
+**1. Reader model on tool results (implemented)** — Every SS API call goes through a reader LLM that filters raw results based on the main agent's focus instructions. Like Claude Code's WebFetch using Haiku to process raw HTML before the main agent sees it. Keeps main context clean without losing data.
+
+**2. Subagent delegation** — Give the main agent an `explore` tool that spawns a subagent with its own context window and SS API tools. The subagent makes as many API calls as needed, then returns a distilled report. Main agent decides when to delegate vs use direct tools. Most flexible but adds complexity.
+
+**3. Two-tier (scout + commander)** — Main agent only has `explore`, `create_track`, `add_paper_to_track`, and `done`. All discovery happens through scout subagents. Main agent is purely strategic. Cleanest context isolation but most structured.
+
+**4. Tool result clearing** — Like Claude Code's approach: old tool results get stripped from history, agent can re-invoke if needed. Simple but risks the agent losing track of what it already explored.
+
+**5. Constrained retrieval** — Like ChatGPT Search's sliding window: cap how much data any single tool call can return (~200 words per chunk). Simple but requires the agent to make many more calls.
 
 ## Usage
 
-### Basic Workflow
+### CLI
 
-1. Go to ResearchRabbit → **Switch to list view** (not canvas)
-2. Click "➕ Add to Throughline" on 1-3 seed papers
-3. Click extension icon → "🔍 Trace throughlines"
-4. Click "Run Analysis" (takes 2-5 minutes)
-5. View threads sorted chronologically
-
-### Optional: Clustering Criteria (Why You Want This Analysis)
-
-Throughline can cluster papers in different ways depending on **why** you're doing the analysis. Some users want lab/author lineages; others care about training scale, datasets, or architectural families. You can provide a short criteria statement that the LLM will use to define and separate research tracks.
-
-- **If you provide criteria**: the LLM uses it as the primary clustering rule.
-- **If you don't**: it defaults to lab/author lineage and shared architectural philosophy.
-
-Examples of criteria statements:
-- "Group by lab/author lineage, and separate each main architectural thread"
-- "Group by training scale and data regime (small curated vs. web-scale)"
-- "Group by methodological paradigm (symbolic, statistical, neural)"
-
-For the standalone CLI:
-
-```
-THROUGHLINE_CLUSTERING_CRITERIA="Group by lab/author lineage, and separate each main architectural thread" node main.js papers.json
+```bash
+node main.js papers.json
 ```
 
-### During Analysis
+Criteria defaults are hardcoded in `main.js` for CLI runs.  
+To override criteria programmatically, call `analyzePapers` as a module:
 
-- **Progress bar** shows current operation
-- **Live thread display** shows threads being built in real-time
-- **Stop button** (⏹) stops analysis gracefully and saves debug tree
-- Analysis continues in background - safe to close popup
-
-### After Analysis
-
-- Click paper titles to open in Semantic Scholar
-- **Download Debug Tree** to see decision-making process
-- View all discovered threads and papers
-
-## How It Works
-
-### For Each Seed Paper:
-
-1. **Theme Extraction**: LLM identifies 2-3 core research themes
-2. **Thread Creation**: Each theme becomes a separate research thread
-3. **Paper Discovery** (dual strategy):
-   - Fetch papers that cite the seed (direct descendants)
-   - Fetch semantically similar papers via SPECTRE embeddings
-   - Merge and deduplicate (330+ candidates typical)
-4. **Quality Filtering**:
-   - Remove papers 3+ years old with <5 citations
-   - Keep recent papers (≤2 years) regardless of citations
-5. **LLM Ranking**:
-   - Provide full abstracts, authors, citation counts
-   - LLM ranks papers by relevance to thread theme
-   - Helps identify same-lab work and conceptual connections
-6. **Thread Expansion**:
-   - LLM selects papers to add (same authors/lab = strongest signal)
-   - Check if paper spawns new sub-threads
-   - Recurse until reaching current year or thread exhausted
-7. **Sub-thread Detection**:
-   - LLM analyzes each paper for new research directions
-   - Spawns sub-threads for significant divergences
-
-### Example Thread Evolution:
-
-```
-Thread: Development of ViNT as a Transformer-based foundation...
-  ├─ ViNT: A Foundation Model for Visual Navigation (2023)
-  ├─ NoMaD: Goal Masked Diffusion Policies... (2023)
-  │  └─ Sub-thread: Unified diffusion policy for goal-directed navigation...
-  │     ├─ LeLaN: Learning A Language-Conditioned Navigation... (2024)
-  │     └─ OmniVLA: An Omni-Modal Vision-Language-Action... (2025)
-  └─ ...continues to 2026
+```js
+const { analyzePapers } = require('./main.js');
+const results = await analyzePapers(papers, apiKey, {
+  clusteringCriteria: "Your custom research criteria..."
+});
 ```
 
-## Understanding Results
+### Configuration
 
-### Thread Display
-
-- **Theme**: LLM-generated description of research direction
-- **Papers**: Chronological list with year, title, authors, citations
-- **Sub-threads**: Indented threads showing research divergence
-- **Links**: Click titles to open in Semantic Scholar
-
-### Quality Indicators
-
-- **Citation count**: Shows paper impact
-- **Author overlap**: Helps identify same-lab work
-- **Year progression**: Shows research evolution over time
-
-### Debug Tree
-
-Download the debug tree to see:
-- Which papers were considered at each step
-- How the LLM ranked candidates
-- Why specific papers were selected
-- All current threads at any point in time
-- Search statistics (citing vs recommended papers)
-
-Example debug tree entry:
-```
-[5] SELECT_DECISIONS: LLM selected 2 of 10 candidates
-    LLM decisions:
-      ✓ ADD: NoMaD: Goal Masked Diffusion Policies...
-          Reason: Same authors (Shah), direct follow-up extending ViNT
-      ✗ SKIP: Navigation with Large Language Models...
-          Reason: Uses LLMs for planning, unrelated architecture
-```
-
-## Technical Details
-
-### Search Strategy
-
-1. **Citations API**: Papers that cite the seed (direct descendants)
-2. **Recommendations API**: Semantically similar via SPECTRE v2
-3. **Merge**: Deduplicate papers appearing in both
-4. **Filter**: Quality filter removes old low-impact papers
-5. **Rank**: LLM with full context selects most relevant
-
-### Rate Limits
-
-- Semantic Scholar: 1 req/sec (unauthorized API)
-- OpenRouter: Depends on your tier
-- Built-in retry logic for 429 errors
-
-### Limits (Configurable)
-
-- Max 10 threads per analysis
-- Max 20 papers per thread
-- Prompts ~150-500KB for ranking (large context windows)
-
-### Error Handling
-
-- **LLM parse errors**: Automatic self-correction retry
-- **Rate limiting**: Exponential backoff up to 20s, then hard failure
-- **Malformed responses**: Debug tree captures for analysis
-- **Stop button**: Graceful termination with debug tree save
-
-### Storage
-
-- Uses Chrome local storage
-- Papers stored with: title, authors, abstract, year, citations, paperId
-- Debug tree saved for every analysis
-- All data stored locally (no external sync)
-
-
-## Development
-
-### File Structure
+Create a `.env` file:
 
 ```
-throughline-extension/
-├── manifest.json          # Extension config
-├── background.js          # Core analysis logic (ThroughlineAnalyzer)
-├── content.js            # ResearchRabbit page injection
-├── popup.html/js         # Extension popup UI
-├── config.html           # Options page for API key
-└── README.md            # This file
+OPENROUTER_API_KEY=your-key-here
 ```
 
-### Key Classes
+Get an OpenRouter key at https://openrouter.ai/keys
 
-- `ThroughlineAnalyzer`: Main analysis engine
-  - `analyze()`: Entry point
-  - `processSeedPaper()`: Extract themes and start threads
-  - `expandThread()`: Recursive thread expansion
-  - `findRelatedPapers()`: Dual-strategy search
-  - `rankPapers()`: LLM ranking with full context
-  - `checkForSubThreads()`: Detect research divergence
+### Input Format
 
-### Debug Logging
+`papers.json`:
 
-Set `DEBUG_ENABLED = true` in background.js for verbose console logs.
+```json
+[
+  {
+    "title": "Paper Title",
+    "abstract": "Paper abstract...",
+    "year": 2020,
+    "authors": [{"name": "Author Name"}]
+  }
+]
+```
+
+### Output
+
+Results are saved to `throughline-results.json` with research threads, papers, and selection reasoning.

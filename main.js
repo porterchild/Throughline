@@ -9,8 +9,8 @@
  *   node main.js <papers-json-file>
  *   node main.js  # uses example papers
  *
- * Optional clustering criteria:
- *   THROUGHLINE_CLUSTERING_CRITERIA="Group by lab/author lineage" node main.js papers.json
+ * Default research criteria is hardcoded below to avoid silent misconfiguration.
+ * You can still override via analyzePapers(..., { clusteringCriteria: "..." }).
  * 
  * Or import as a module:
  *   const { analyzePapers } = require('./main.js');
@@ -20,6 +20,8 @@
 const { ThroughlineAnalyzer } = require('./src/throughline-analyzer.js');
 const fs = require('fs');
 const path = require('path');
+
+const DEFAULT_USER_CRITERIA = "I want to trace research lineages by following lab/author continuations and methodological evolution in robotic visual navigation. Find the distinct lab lineages that have emerged in the last 5 or so years. The seed paper seems to be one of those lineages that are high-quality, but I know there are others. Robotic navigation is what I'm interested in. It seems like the field is moving towards more and more end to end neural networks, which makes sense given the progress in LLM land. To be clear, I would just ask for a tracing of the SOTA progress over time in this field, but unfortunately the field doesn't seem to have a common set of benchmarks, and each lab focuses on their own evals. Well, there are a few common ones in VLM-for-nav land. So those are worth following. The seed is an older paper, so it won't refer to those, you'll have to find them.";
 
 // Load .env file if it exists
 function loadEnvFile() {
@@ -72,11 +74,13 @@ async function analyzePapers(papers, apiKey, options = {}) {
     throw new Error('OpenRouter API key is required. Set OPENROUTER_API_KEY environment variable or pass as parameter.');
   }
 
+  const criteria = options.clusteringCriteria || DEFAULT_USER_CRITERIA;
+
   const config = {
     openRouterApiKey: apiKey,
-    maxThreads: options.maxThreads || 6,
-    maxPapersPerThread: options.maxPapersPerThread || 12,
-    clusteringCriteria: options.clusteringCriteria || process.env.THROUGHLINE_CLUSTERING_CRITERIA || null,
+    maxThreads: options.maxThreads || 10,
+    maxPapersPerThread: options.maxPapersPerThread || 15,
+    clusteringCriteria: criteria,
     logger: {
       log: (...args) => console.log('[Throughline]', ...args),
       error: (...args) => console.error('[Throughline]', ...args),
@@ -85,6 +89,7 @@ async function analyzePapers(papers, apiKey, options = {}) {
   };
 
   const analyzer = new ThroughlineAnalyzer(config);
+  console.log('Research criteria:', config.clusteringCriteria);
 
   // Progress callback
   const onProgress = (message, detail, percent, threads) => {
