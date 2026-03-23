@@ -49,6 +49,7 @@ class ThroughlineAnalyzer {
 
     this.timeStats = { llmCalls: 0, llmTimeMs: 0, ssCalls: 0, ssTimeMs: 0, ssRetries: 0, ssCacheHits: 0 };
     this.addPaperCallCount = 0;
+    this.primer = '';
 
     this.clusteringCriteria = apiConfig.clusteringCriteria || null;
     this.maxCompletionTokens = apiConfig.maxCompletionTokens || 15000;
@@ -93,6 +94,7 @@ class ThroughlineAnalyzer {
     this.paperStore = new Map();
     this.seedPapers = seedPapers;
     this.addPaperCallCount = 0;
+    this.primer = '';
 
     this.updateProgress('Starting analysis...', 'Agent exploring research landscape', 0);
 
@@ -149,7 +151,7 @@ class ThroughlineAnalyzer {
       `- "${p.title}" (${p.year}) by ${(p.authors || []).map(a => a.name).join(', ')} [ID: ${p.paperId}]\n  Abstract: ${p.abstract || 'N/A'}`
     ).join('\n');
 
-    const systemPrompt = `You are a research exploration agent. Your job is to explore the academic literature starting from seed paper(s) and build research tracks that satisfy the user's research criteria. You have access to the Semantic Scholar API through tools.
+    const systemPrompt = `You are a research exploration agent. Your job is to explore the academic literature based on the User's interest and build research tracks that satisfy the user's research criteria. You have access to the Semantic Scholar API through tools.
 
 SEED PAPER(S):
 ${seedInfo}
@@ -158,8 +160,17 @@ USER'S RESEARCH CRITERIA:
 ${criteria}
 
 HOW TO WORK:
-Use create_track to organize what you find into distinct threads, and add_paper_to_track to populate them.
-Choose your own exploration strategy based on the user's criteria and the evidence you uncover.
+You maintain two artifacts in parallel — both are equally important:
+
+1. RESEARCH TRACKS: Distinct threads of related work organized by the user's criteria.
+
+2. RESEARCH PRIMER: A living document that captures your growing understanding of the field — its concepts, terminology, and how ideas relate. By the end of a run it should read like a primer on the field for someone coming in cold. This includes:
+   - Key concepts and what they mean in this field
+   - Terminology map: different words/labels for the same underlying idea across communities or time periods
+   - The landscape of ideas as they relate to the user's criteria
+
+Be curious, and develop an understanding of the research relevant to the User's criteria in these artifacts. They are the results that the User will get.
+
 Before each tool call, briefly decide:
 - what remains uncertain under the user's criteria
 - which single tool call will reduce that uncertainty the most
@@ -254,6 +265,8 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           // logged inside toolDeleteTrack
         } else if (result.removed) {
           // logged inside toolRemovePapersFromTrack
+        } else if (result.appended || result.updated) {
+          // logged inside toolAppendToPrimer / toolUpdatePrimer
         } else if (result.done) {
           this.logger.log(fmt(C.bgreen, `│   ✔ Done: ${result.summary}`));
         }
@@ -472,6 +485,51 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       {
         type: 'function',
         function: {
+          name: 'view_primer',
+          description: 'View the current research primer — your accumulated understanding of the field.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC }
+            },
+            required: ['rationale']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'append_to_primer',
+          description: 'Append new content to the research primer. Use this to record new concepts, terminology mappings, methodological insights, or landscape observations as you discover them.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
+              content: { type: 'string', description: 'Content to append to the primer' }
+            },
+            required: ['rationale', 'content']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'update_primer',
+          description: 'Replace a specific passage in the research primer with new text. Use this to correct or refine existing understanding.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
+              old_text: { type: 'string', description: 'The exact text to replace' },
+              new_text: { type: 'string', description: 'The replacement text' }
+            },
+            required: ['rationale', 'old_text', 'new_text']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
           name: 'done',
           description: 'Signal that exploration is complete only when major uncertainties under the user\'s criteria are resolved and additional tool calls are unlikely to materially change track structure.',
           parameters: {
@@ -505,6 +563,9 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         case 'rename_track': return this.toolRenameTrack(args);
         case 'delete_track': return this.toolDeleteTrack(args);
         case 'remove_papers_from_track': return this.toolRemovePapersFromTrack(args);
+        case 'view_primer': return this.toolViewPrimer();
+        case 'append_to_primer': return this.toolAppendToPrimer(args);
+        case 'update_primer': return this.toolUpdatePrimer(args);
         case 'done': return this.toolDone(args);
         default: return { error: `Unknown tool: ${name}` };
       }
@@ -726,6 +787,26 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     return { removed, not_found: notFound, track_size: track.papers.length };
   }
 
+  toolViewPrimer() {
+    this.logger.log(fmt(C.bold + C.bwhite, `│ [view_primer]`));
+    return { primer: this.primer || '(empty)' };
+  }
+
+  toolAppendToPrimer({ content }) {
+    this.primer = this.primer ? `${this.primer}\n\n${content}` : content;
+    this.logger.log(fmt(C.bold + C.bwhite, `│ [primer +] `) + fmt(C.white, content.split('\n')[0].substring(0, 80)));
+    return { appended: true, primer_length: this.primer.length };
+  }
+
+  toolUpdatePrimer({ old_text, new_text }) {
+    if (!this.primer.includes(old_text)) {
+      return { error: 'old_text not found in primer' };
+    }
+    this.primer = this.primer.replace(old_text, new_text);
+    this.logger.log(fmt(C.bold + C.bwhite, `│ [primer ~] `) + fmt(C.white, new_text.split('\n')[0].substring(0, 80)));
+    return { updated: true, primer_length: this.primer.length };
+  }
+
   toolDone({ summary }) {
     this.logger.log(fmt(C.bold + C.bgreen, `  [done] ${summary}`));
     return { done: true, summary };
@@ -764,10 +845,15 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
     const rawPapers = this.formatPapersForLLM(papers);
 
+    const primerSection = this.primer ? `\nRESEARCH PRIMER (agent's accumulated understanding of the field — use this to help you judge relevance across terminology differences):\n${this.primer}\n` : '';
+
     const readerPrompt = `You are a research paper filter. You receive raw results from a Semantic Scholar API call and must select papers that best match the main agent's focus and the user's criteria.
 
 USER'S RESEARCH CRITERIA:
 ${criteria}
+
+RESEARCH PRIMER:
+${primerSection}
 
 CURRENT TRACKS:
 ${trackContext}
