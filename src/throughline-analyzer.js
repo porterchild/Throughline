@@ -3,41 +3,69 @@ const crypto = require('crypto');
 const fs = require('fs');
 const pathModule = require('path');
 
+// ANSI color helpers
+const C = {
+  reset:   '\x1b[0m',
+  bold:    '\x1b[1m',
+  dim:     '\x1b[2m',
+  // standard
+  red:     '\x1b[31m',
+  green:   '\x1b[32m',
+  yellow:  '\x1b[33m',
+  blue:    '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan:    '\x1b[36m',
+  white:   '\x1b[37m',
+  // bright
+  bred:     '\x1b[91m',
+  bgreen:   '\x1b[92m',
+  byellow:  '\x1b[93m',
+  bblue:    '\x1b[94m',
+  bmagenta: '\x1b[95m',
+  bcyan:    '\x1b[96m',
+  bwhite:   '\x1b[97m',
+};
+const fmt = (color, ...parts) => `${color}${parts.join('')}${C.reset}`;
+
+const RATIONALE_DESC = 'Briefly explain your rationale for this tool call. Helps make your exploration legible to the user.';
+
 class ThroughlineAnalyzer {
   constructor(apiConfig = {}) {
+    this.logger = apiConfig.logger || {
+      log: (...args) => console.log(...args),
+      error: (...args) => console.error(...args),
+      warn: (...args) => console.warn(...args)
+    };
+
     this.threads = [];
     this.paperStore = new Map();
     this.processedPapers = new Set(); // paper IDs already added to any track
     this.paperIdCache = new Map();
-    this.maxThreads = apiConfig.maxThreads || 10;
-    this.maxPapersPerThread = apiConfig.maxPapersPerThread || 20;
+    this.minIterations = apiConfig.minIterations || 20;
     this.progressCallback = null;
     this.debugTree = [];
     this.stopped = false;
     this.seedPapers = [];
 
     this.timeStats = { llmCalls: 0, llmTimeMs: 0, ssCalls: 0, ssTimeMs: 0, ssRetries: 0, ssCacheHits: 0 };
+    this.addPaperCallCount = 0;
 
     this.clusteringCriteria = apiConfig.clusteringCriteria || null;
     this.maxCompletionTokens = apiConfig.maxCompletionTokens || 15000;
 
     this.openRouterApiKey = apiConfig.openRouterApiKey || null;
-    this.semanticScholarDelay = apiConfig.semanticScholarDelay || 5000;
+    this.semanticScholarApiKey = apiConfig.semanticScholarApiKey || process.env.SEMANTIC_SCHOLAR_API_KEY || null;
+    // Authenticated = dedicated 1 RPS; unauthenticated = contested shared pool (aggressive 429s)
+    this.semanticScholarDelay = apiConfig.semanticScholarDelay || (this.semanticScholarApiKey ? 1100 : 5000);
     this.lastSemanticScholarCall = 0;
 
     this.ssCacheDir = apiConfig.ssCacheDir || pathModule.join(process.cwd(), '.ss-cache');
-    this.ssCacheTTL = apiConfig.ssCacheTTL || 7 * 24 * 60 * 60 * 1000;
+    this.ssCacheTTL = apiConfig.ssCacheTTL || 90 * 24 * 60 * 60 * 1000;
     this.ssCacheEnabled = apiConfig.ssCacheEnabled !== false;
     if (this.ssCacheEnabled) {
       fs.mkdirSync(this.ssCacheDir, { recursive: true });
       this.pruneStaleCache();
     }
-
-    this.logger = apiConfig.logger || {
-      log: (...args) => console.log(...args),
-      error: (...args) => console.error(...args),
-      warn: (...args) => console.warn(...args)
-    };
   }
 
   async traceResearchLineages(seedPapers, onProgress) {
@@ -51,12 +79,12 @@ class ThroughlineAnalyzer {
 
   async analyze(seedPapers) {
     const analysisStartTime = Date.now();
-    this.logger.log('\n' + '='.repeat(70));
-    this.logger.log('STARTING THROUGHLINE ANALYSIS (Agent Mode)');
-    this.logger.log('='.repeat(70));
-    this.logger.log(`Seed papers: ${seedPapers.length}`);
-    seedPapers.forEach((p, i) => this.logger.log(`  ${i+1}. "${p.title}" (${p.year})`));
-    this.logger.log('='.repeat(70) + '\n');
+    this.logger.log(fmt(C.bold + C.bcyan, '\n' + '═'.repeat(70)));
+    this.logger.log(fmt(C.bold + C.bcyan, '  THROUGHLINE ANALYSIS — Agent Mode'));
+    this.logger.log(fmt(C.bold + C.bcyan, '═'.repeat(70)));
+    seedPapers.forEach((p, i) => this.logger.log(fmt(C.cyan, `  Seed ${i+1}: "${p.title}" (${p.year})`)));
+    this.logger.log(fmt(C.dim, `  SS: ${this.semanticScholarApiKey ? 'authenticated (1 RPS dedicated)' : 'unauthenticated (shared pool — expect 429s)'}`));
+    this.logger.log(fmt(C.bold + C.bcyan, '═'.repeat(70)) + '\n');
 
     this.stopped = false;
     this.debugTree = [];
@@ -64,6 +92,7 @@ class ThroughlineAnalyzer {
     this.processedPapers = new Set();
     this.paperStore = new Map();
     this.seedPapers = seedPapers;
+    this.addPaperCallCount = 0;
 
     this.updateProgress('Starting analysis...', 'Agent exploring research landscape', 0);
 
@@ -81,19 +110,12 @@ class ThroughlineAnalyzer {
     await this.runAgent(seedPapers);
 
     const totalTime = ((Date.now() - analysisStartTime) / 1000).toFixed(1);
-    this.logger.log('\n' + '='.repeat(70));
-    this.logger.log('ANALYSIS COMPLETE');
-    this.logger.log('='.repeat(70));
-    this.logger.log(`Total time: ${totalTime}s`);
-    this.logger.log(`Threads found: ${this.threads.length}`);
-    this.logger.log(`Total papers: ${this.threads.reduce((sum, t) => sum + t.papers.length, 0)}`);
-    this.logger.log(`\nTIME BREAKDOWN:`);
-    this.logger.log(`  LLM calls: ${this.timeStats.llmCalls} calls, ${(this.timeStats.llmTimeMs/1000).toFixed(1)}s total`);
-    this.logger.log(`  SS API calls: ${this.timeStats.ssCalls} calls, ${(this.timeStats.ssTimeMs/1000).toFixed(1)}s total`);
-    this.logger.log(`  SS cache hits: ${this.timeStats.ssCacheHits}`);
-    this.logger.log(`  SS retries (429s): ${this.timeStats.ssRetries}`);
-    this.logger.log(`  Other/overhead: ${(totalTime - this.timeStats.llmTimeMs/1000 - this.timeStats.ssTimeMs/1000).toFixed(1)}s`);
-    this.logger.log('='.repeat(70) + '\n');
+    this.logger.log(fmt(C.bold + C.bgreen, '\n' + '═'.repeat(70)));
+    this.logger.log(fmt(C.bold + C.bgreen, '  ANALYSIS COMPLETE'));
+    this.logger.log(fmt(C.bold + C.bgreen, '═'.repeat(70)));
+    this.logger.log(fmt(C.bwhite, `  Threads: ${this.threads.length}  |  Papers: ${this.threads.reduce((sum, t) => sum + t.papers.length, 0)}  |  Time: ${totalTime}s`));
+    this.logger.log(fmt(C.dim, `  LLM: ${this.timeStats.llmCalls} calls ${(this.timeStats.llmTimeMs/1000).toFixed(1)}s  |  SS: ${this.timeStats.ssCalls} calls ${(this.timeStats.ssTimeMs/1000).toFixed(1)}s  |  Cache hits: ${this.timeStats.ssCacheHits}  |  429 retries: ${this.timeStats.ssRetries}`));
+    this.logger.log(fmt(C.bold + C.bgreen, '═'.repeat(70)) + '\n');
 
     this.updateProgress('Analysis complete', `Found ${this.threads.length} research threads`, 100);
     return this.threads;
@@ -138,6 +160,10 @@ ${criteria}
 HOW TO WORK:
 Use create_track to organize what you find into distinct threads, and add_paper_to_track to populate them.
 Choose your own exploration strategy based on the user's criteria and the evidence you uncover.
+Before each tool call, briefly decide:
+- what remains uncertain under the user's criteria
+- which single tool call will reduce that uncertainty the most
+Keep candidate directions provisional until you can explain why a candidate is distinct enough, under the user's criteria, to deserve its own track rather than remaining supporting evidence for another track.
 
 Tool calls that return papers will show you paper IDs and author IDs. You need paper IDs to add papers to tracks or to look up their citations/references. Use author IDs (from paper results) with get_author_papers for precise lookups. Papers must appear in a tool result before you can add them.`;
 
@@ -148,31 +174,37 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
     let iterations = 0;
     const maxIterations = 40;
+    const minIterations = this.minIterations || 20;
 
     while (iterations < maxIterations) {
       if (await this.checkStopped()) throw new Error('Analysis stopped by user');
       iterations++;
 
       const totalPapers = this.threads.reduce((sum, t) => sum + t.papers.length, 0);
-      this.logger.log(`\n--- Agent iteration ${iterations} (${this.threads.length} tracks, ${totalPapers} total papers) ---`);
+      this.logger.log(fmt(C.bold + C.bcyan, `\n┌─ Iteration ${iterations} `) + fmt(C.dim, `(${this.threads.length} tracks, ${totalPapers} papers)`));
       this.updateProgress(`Agent exploring...`, `${this.threads.length} tracks, ${totalPapers} papers (iteration ${iterations})`, null);
 
       let response;
       try {
         response = await this.callLLMWithTools(messages);
       } catch (e) {
-        this.logger.error(`[AGENT] LLM call failed: ${e.message}`);
+        this.logger.error(fmt(C.bred, `[AGENT] LLM call failed: ${e.message}`));
         break;
       }
 
       messages.push(response.message);
 
       if (response.message.content) {
-        this.logger.log(`[AGENT] ${response.message.content}`);
+        this.logger.log(fmt(C.bwhite, `│ `) + fmt(C.white, response.message.content));
       }
 
       if (!response.toolCalls || response.toolCalls.length === 0) {
-        this.logger.log('[AGENT] No tool calls, agent finished.');
+        if (iterations < minIterations) {
+          this.logger.log(fmt(C.yellow, `│ (no tool calls at iteration ${iterations}, minimum is ${minIterations}) — continuing.`));
+          messages.push({ role: 'user', content: "Haven't explored enough yet. Assume there is important research for the user that you haven't found yet. Continue exploring." });
+          continue;
+        }
+        this.logger.log(fmt(C.dim, '│ (no tool calls — agent finished)'));
         break;
       }
 
@@ -184,40 +216,71 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           toolArgs = JSON.parse(call.function.arguments);
         } catch (e) {
           messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: `Bad arguments: ${e.message}` }) });
-          this.logger.warn(`[AGENT] Bad tool args for ${toolName}: ${e.message}`);
+          this.logger.warn(fmt(C.yellow, `│ [bad args] ${toolName}: ${e.message}`));
           continue;
         }
 
-        this.logger.log(`[AGENT] Tool: ${toolName}(${JSON.stringify(toolArgs)})`);
+        // Format tool call — show key args
+        const argSummary = toolArgs.paper_id ? `paper:${toolArgs.paper_id}`
+          : toolArgs.query ? `"${toolArgs.query}"`
+          : toolArgs.author_id ? `author_id:${toolArgs.author_id}`
+          : toolArgs.author_name ? `"${toolArgs.author_name}"`
+          : toolArgs.theme ? `"${toolArgs.theme}"`
+          : toolArgs.track_index !== undefined ? `track:${toolArgs.track_index}`
+          : '';
+        const focusSummary = toolArgs.focus ? fmt(C.dim, `  focus: "${toolArgs.focus}"`) : '';
+        if (toolArgs.rationale) this.logger.log(fmt(C.bold + C.bcyan, `│ [Agent tool call rationale] `) + fmt(C.bcyan, toolArgs.rationale));
+        this.logger.log(fmt(C.bgreen, `│ ▶ ${toolName}`) + fmt(C.green, `(${argSummary})`) + focusSummary);
 
         const result = await this.executeTool(toolName, toolArgs);
         messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
 
         if (toolName === 'done') agentDone = true;
 
-        // Log summary
+        // Log result
         if (result.error) {
-          this.logger.log(`[AGENT]   -> Error: ${result.error}`);
-        } else if (result.papers) {
-          this.logger.log(`[AGENT]   -> ${result.papers.length} papers returned`);
+          this.logger.log(fmt(C.bred, `│   ✗ ${result.error}`));
+        } else if (result.papers !== undefined) {
+          // papers returned by reader — count logged by reader itself
         } else if (result.added) {
-          this.logger.log(`[AGENT]   -> Added to "${result.track}": "${result.title}" (${result.year})`);
+          this.logger.log(fmt(C.magenta, `│   + [track ${toolArgs.track_index}] "${result.title}" (${result.year})`) + fmt(C.dim, ` [${result.authors}]`));
         } else if (result.skipped) {
-          this.logger.log(`[AGENT]   -> Skipped: ${result.reason}`);
+          this.logger.log(fmt(C.dim, `│   ~ skip: ${result.reason} — "${result.title}"`));
         } else if (result.track_created) {
-          this.logger.log(`[AGENT]   -> Created track: "${result.theme}"`);
+          this.logger.log(fmt(C.bold + C.bmagenta, `│   ★ NEW TRACK [${result.track_index}]: "${result.theme}"`));
+        } else if (result.renamed) {
+          // logged inside toolRenameTrack
+        } else if (result.deleted) {
+          // logged inside toolDeleteTrack
+        } else if (result.removed) {
+          // logged inside toolRemovePapersFromTrack
         } else if (result.done) {
-          this.logger.log(`[AGENT]   -> Done: ${result.summary}`);
+          this.logger.log(fmt(C.bgreen, `│   ✔ Done: ${result.summary}`));
         }
       }
 
+      // Every 5 add_paper_to_track calls, inject the full track state so the agent
+      // has a clean structured view of what it's built — prevents it from narrating
+      // additions instead of actually calling tools when context grows large.
+      const TRACK_SUMMARY_EVERY = 5;
+      if (this.addPaperCallCount > 0 && this.addPaperCallCount % TRACK_SUMMARY_EVERY === 0) {
+        const summary = this.buildTrackSummary();
+        this.logger.log(fmt(C.bold + C.bwhite, `│ [Track state injected at ${this.addPaperCallCount} adds]`));
+        messages.push({ role: 'user', content: summary });
+      }
+
       if (agentDone) {
-        this.logger.log('[AGENT] Agent called done().');
-        break;
+        if (iterations < minIterations) {
+          this.logger.log(fmt(C.yellow, `└─ Agent signaled done at iteration ${iterations} (minimum is ${minIterations}) — continuing.`));
+          messages.push({ role: 'user', content: "Making progress! But you haven't explored enough yet. Assume there is important research for the user that you haven't found yet. Continue exploring. If you feel you're going in circles, step back, survey what you've covered, and look for gaps or new directions. The literature is vast, it would be a bit arrogant to assume you're done already! You will keep recieving this message until the proper level of exploration has been done. Go get'em Tiger!" });
+        } else {
+          this.logger.log(fmt(C.bold + C.bgreen, '└─ Agent signaled done.'));
+          break;
+        }
       }
     }
 
-    this.logger.log(`\n[AGENT] Finished after ${iterations} iterations.`);
+    this.logger.log(fmt(C.dim, `\n[Agent] Finished after ${iterations} iterations.`));
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -234,12 +297,13 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               query: { type: 'string', description: 'Search query' },
               focus: { type: 'string', description: 'What you are looking for in these results. The reader model uses this to filter and highlight relevant papers.' },
               min_year: { type: 'integer', description: 'Minimum publication year' },
               limit: { type: 'integer', description: 'Max results (default 20, max 50)' }
             },
-            required: ['query', 'focus']
+            required: ['rationale', 'query', 'focus']
           }
         }
       },
@@ -251,11 +315,12 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               paper_id: { type: 'string', description: 'Semantic Scholar paper ID' },
               focus: { type: 'string', description: 'What you are looking for in these results. The reader model uses this to filter and highlight relevant papers.' },
               limit: { type: 'integer', description: 'Max results (default 100, max 200)' }
             },
-            required: ['paper_id', 'focus']
+            required: ['rationale', 'paper_id', 'focus']
           }
         }
       },
@@ -267,11 +332,12 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               paper_id: { type: 'string', description: 'Semantic Scholar paper ID' },
               focus: { type: 'string', description: 'What you are looking for in these results. The reader model uses this to filter and highlight relevant papers.' },
               limit: { type: 'integer', description: 'Max results (default 50, max 100)' }
             },
-            required: ['paper_id', 'focus']
+            required: ['rationale', 'paper_id', 'focus']
           }
         }
       },
@@ -283,11 +349,12 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               paper_id: { type: 'string', description: 'Semantic Scholar paper ID' },
               focus: { type: 'string', description: 'What you are looking for in these results. The reader model uses this to filter and highlight relevant papers.' },
               limit: { type: 'integer', description: 'Max results (default 50, max 100)' }
             },
-            required: ['paper_id', 'focus']
+            required: ['rationale', 'paper_id', 'focus']
           }
         }
       },
@@ -299,12 +366,13 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               author_id: { type: 'string', description: 'Semantic Scholar author ID from paper results (preferred — avoids wrong-person issues)' },
               author_name: { type: 'string', description: 'Author name to search for (fallback if no ID available)' },
               focus: { type: 'string', description: 'What you are looking for in these results. The reader model uses this to filter and highlight relevant papers.' },
               min_year: { type: 'integer', description: 'Minimum publication year' }
             },
-            required: ['focus']
+            required: ['rationale', 'focus']
           }
         }
       },
@@ -316,9 +384,10 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               theme: { type: 'string', description: 'One-sentence description of this research track' }
             },
-            required: ['theme']
+            required: ['rationale', 'theme']
           }
         }
       },
@@ -330,11 +399,73 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               track_index: { type: 'integer', description: 'Track number (0-based index)' },
               paper_id: { type: 'string', description: 'Semantic Scholar paper ID' },
               reason: { type: 'string', description: 'Why this paper belongs in this track' }
             },
-            required: ['track_index', 'paper_id', 'reason']
+            required: ['rationale', 'track_index', 'paper_id', 'reason']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'view_tracks',
+          description: 'View the current state of all tracks and their papers. Use this to orient yourself before reorganizing.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC }
+            },
+            required: ['rationale']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'rename_track',
+          description: 'Rename a track to better reflect its actual contents.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
+              track_index: { type: 'integer', description: 'Track number (0-based index)' },
+              theme: { type: 'string', description: 'New one-sentence description of this research track' }
+            },
+            required: ['rationale', 'track_index', 'theme']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'delete_track',
+          description: 'Delete a track entirely. Papers in it are returned to the pool and can be re-added to other tracks.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
+              track_index: { type: 'integer', description: 'Track number (0-based index)' }
+            },
+            required: ['rationale', 'track_index']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'remove_papers_from_track',
+          description: 'Remove one or more papers from a track. Removed papers are returned to the pool and can be re-added to other tracks.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
+              track_index: { type: 'integer', description: 'Track number (0-based index)' },
+              paper_ids: { type: 'array', items: { type: 'string' }, description: 'List of Semantic Scholar paper IDs to remove' }
+            },
+            required: ['rationale', 'track_index', 'paper_ids']
           }
         }
       },
@@ -342,13 +473,14 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         type: 'function',
         function: {
           name: 'done',
-          description: 'Signal that exploration is complete when you have enough evidence to satisfy the user\'s research criteria.',
+          description: 'Signal that exploration is complete only when major uncertainties under the user\'s criteria are resolved and additional tool calls are unlikely to materially change track structure.',
           parameters: {
             type: 'object',
             properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
               summary: { type: 'string', description: 'Summary of tracks found and exploration done' }
             },
-            required: ['summary']
+            required: ['rationale', 'summary']
           }
         }
       }
@@ -369,6 +501,10 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         case 'get_author_papers': return await this.toolGetAuthorPapers(args);
         case 'create_track': return this.toolCreateTrack(args);
         case 'add_paper_to_track': return this.toolAddPaperToTrack(args);
+        case 'view_tracks': return this.toolViewTracks();
+        case 'rename_track': return this.toolRenameTrack(args);
+        case 'delete_track': return this.toolDeleteTrack(args);
+        case 'remove_papers_from_track': return this.toolRemovePapersFromTrack(args);
         case 'done': return this.toolDone(args);
         default: return { error: `Unknown tool: ${name}` };
       }
@@ -378,22 +514,24 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   }
 
   async toolSearchPapers({ query, focus, min_year, limit }) {
-    limit = Math.min(limit || 20, 50);
-    let url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=paperId,title,abstract,year,authors,citationCount&limit=${limit}`;
+    const SS_SEARCH_MAX = 50; // always fetch max so the URL is stable across runs → cache hits
+    const requested = Math.min(limit || 20, SS_SEARCH_MAX);
+    let url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_SEARCH_MAX}`;
     if (min_year) url += `&publicationDateOrYear=${min_year}:`;
     const resp = await this.throttledSemanticScholarCall({ url, method: 'GET' }, `search: ${query}`);
-    const papers = (resp.data.data || []).filter(p => p && p.paperId);
+    const papers = (resp.data.data || []).filter(p => p && p.paperId).slice(0, requested);
     for (const p of papers) this.paperStore.set(p.paperId, p);
     return await this.filterWithReader(papers, focus, `search results for "${query}"`);
   }
 
   async toolGetCitations({ paper_id, focus, limit }) {
-    limit = Math.min(limit || 50, 200);
+    const SS_CITATIONS_MAX = 200; // always fetch max so the URL is stable across runs → cache hits
+    const requested = Math.min(limit || 50, SS_CITATIONS_MAX);
     const resp = await this.throttledSemanticScholarCall({
-      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/citations?fields=paperId,title,abstract,year,authors,citationCount&limit=${limit}`,
+      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/citations?fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_CITATIONS_MAX}`,
       method: 'GET'
     }, `citations: ${paper_id.substring(0, 12)}...`);
-    const papers = (resp.data.data || []).map(c => c.citingPaper).filter(p => p && p.paperId);
+    const papers = (resp.data.data || []).map(c => c.citingPaper).filter(p => p && p.paperId).slice(0, requested);
     for (const p of papers) this.paperStore.set(p.paperId, p);
     const sourcePaper = this.paperStore.get(paper_id);
     const sourceTitle = sourcePaper?.title || paper_id;
@@ -401,12 +539,13 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   }
 
   async toolGetReferences({ paper_id, focus, limit }) {
-    limit = Math.min(limit || 50, 100);
+    const SS_REFERENCES_MAX = 100; // always fetch max so the URL is stable across runs → cache hits
+    const requested = Math.min(limit || 50, SS_REFERENCES_MAX);
     const resp = await this.throttledSemanticScholarCall({
-      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/references?fields=paperId,title,abstract,year,authors,citationCount&limit=${limit}`,
+      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/references?fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_REFERENCES_MAX}`,
       method: 'GET'
     }, `references: ${paper_id.substring(0, 12)}...`);
-    const papers = (resp.data.data || []).map(r => r.citedPaper).filter(p => p && p.paperId);
+    const papers = (resp.data.data || []).map(r => r.citedPaper).filter(p => p && p.paperId).slice(0, requested);
     for (const p of papers) this.paperStore.set(p.paperId, p);
     const sourcePaper = this.paperStore.get(paper_id);
     const sourceTitle = sourcePaper?.title || paper_id;
@@ -414,14 +553,15 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   }
 
   async toolGetRecommendations({ paper_id, focus, limit }) {
-    limit = Math.min(limit || 50, 100);
+    const SS_RECOMMENDATIONS_MAX = 100; // always fetch max so the URL is stable across runs → cache hits
+    const requested = Math.min(limit || 50, SS_RECOMMENDATIONS_MAX);
     const resp = await this.throttledSemanticScholarCall({
-      url: `https://api.semanticscholar.org/recommendations/v1/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=${limit}`,
+      url: `https://api.semanticscholar.org/recommendations/v1/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_RECOMMENDATIONS_MAX}`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: { positivePaperIds: [paper_id] }
     }, `recommendations: ${paper_id.substring(0, 12)}...`);
-    const papers = (resp.data.recommendedPapers || []).filter(p => p && p.paperId);
+    const papers = (resp.data.recommendedPapers || []).filter(p => p && p.paperId).slice(0, requested);
     for (const p of papers) this.paperStore.set(p.paperId, p);
     const sourcePaper = this.paperStore.get(paper_id);
     const sourceTitle = sourcePaper?.title || paper_id;
@@ -458,7 +598,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       return { error: 'Provide either author_id or author_name' };
     }
 
-    this.logger.log(`  [Author] Found: ${authorName} (id: ${authorId}, h-index: ${authorHIndex}, papers: ${authorPaperCount})`);
+    this.logger.log(fmt(C.cyan, `  [author] ${authorName}`) + fmt(C.dim, `  h-index:${authorHIndex}  papers:${authorPaperCount}  id:${authorId}`));
 
     let url = `https://api.semanticscholar.org/graph/v1/author/${authorId}/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=50`;
     if (min_year) url += `&publicationDateOrYear=${min_year}:`;
@@ -474,9 +614,6 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   }
 
   toolCreateTrack({ theme }) {
-    if (this.threads.length >= this.maxThreads) {
-      return { error: `Maximum ${this.maxThreads} tracks reached.` };
-    }
     const track = {
       id: this.generateThreadId(),
       theme,
@@ -486,7 +623,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       subThreads: []
     };
     this.threads.push(track);
-    this.logger.log(`  [TRACK] Created track ${this.threads.length - 1}: "${theme}"`);
+    this.logger.log(fmt(C.bold + C.bmagenta, `  [track ${this.threads.length - 1}] "${theme}"`));
     return {
       track_created: true,
       track_index: this.threads.length - 1,
@@ -508,10 +645,6 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       return { skipped: true, reason: 'Already added to a track', title: paper.title };
     }
 
-    if (track.papers.length >= this.maxPapersPerThread) {
-      return { skipped: true, reason: `Track is full (${this.maxPapersPerThread} papers)`, title: paper.title };
-    }
-
     paper.selectionReason = reason;
     track.papers.push(paper);
     this.processedPapers.add(paper_id);
@@ -523,6 +656,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     }
 
     const authors = (paper.authors || []).slice(0, 5).map(a => a.name).join(', ');
+    this.addPaperCallCount++;
     return {
       added: true,
       track: track.theme,
@@ -533,8 +667,67 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     };
   }
 
+  buildTrackSummary() {
+    const totalPapers = this.threads.reduce((n, t) => n + t.papers.length, 0);
+    const body = this.threads.map((t, i) => {
+      const papers = t.papers.map(p => `    - [${p.year}] ${p.title} (id:${p.paperId})`).join('\n');
+      return `Track ${i}: ${t.theme}\n${papers || '    (empty)'}`;
+    }).join('\n\n');
+    return `Current track state (${totalPapers} papers across ${this.threads.length} tracks):\n\n${body}`;
+  }
+
+  toolViewTracks() {
+    const summary = this.buildTrackSummary();
+    this.logger.log(fmt(C.bold + C.bwhite, `│ [view_tracks]`));
+    return { summary };
+  }
+
+  toolRenameTrack({ track_index, theme }) {
+    if (track_index < 0 || track_index >= this.threads.length) {
+      return { error: `Invalid track index ${track_index}. You have ${this.threads.length} tracks (0-${this.threads.length - 1}).` };
+    }
+    const oldTheme = this.threads[track_index].theme;
+    this.threads[track_index].theme = theme;
+    this.logger.log(fmt(C.bold + C.bmagenta, `│   ✎ [track ${track_index}] renamed: "${theme}"`));
+    return { renamed: true, track_index, old_theme: oldTheme, new_theme: theme };
+  }
+
+  toolDeleteTrack({ track_index }) {
+    if (track_index < 0 || track_index >= this.threads.length) {
+      return { error: `Invalid track index ${track_index}. You have ${this.threads.length} tracks (0-${this.threads.length - 1}).` };
+    }
+    const track = this.threads[track_index];
+    // Return papers to pool so they can be re-added elsewhere
+    for (const p of track.papers) {
+      this.processedPapers.delete(p.paperId);
+      this.processedPapers.delete(p.title);
+    }
+    this.threads.splice(track_index, 1);
+    this.logger.log(fmt(C.bold + C.bred, `│   ✗ [track ${track_index}] deleted: "${track.theme}" (${track.papers.length} papers returned to pool)`));
+    return { deleted: true, theme: track.theme, papers_returned: track.papers.length, remaining_tracks: this.threads.length };
+  }
+
+  toolRemovePapersFromTrack({ track_index, paper_ids }) {
+    if (track_index < 0 || track_index >= this.threads.length) {
+      return { error: `Invalid track index ${track_index}. You have ${this.threads.length} tracks (0-${this.threads.length - 1}).` };
+    }
+    const track = this.threads[track_index];
+    const removed = [];
+    const notFound = [];
+    for (const pid of paper_ids) {
+      const idx = track.papers.findIndex(p => p.paperId === pid);
+      if (idx === -1) { notFound.push(pid); continue; }
+      const [paper] = track.papers.splice(idx, 1);
+      this.processedPapers.delete(paper.paperId);
+      this.processedPapers.delete(paper.title);
+      removed.push(paper.title);
+      this.logger.log(fmt(C.dim, `│   - [track ${track_index}] removed: "${paper.title}"`));
+    }
+    return { removed, not_found: notFound, track_size: track.papers.length };
+  }
+
   toolDone({ summary }) {
-    this.logger.log(`  [DONE] ${summary}`);
+    this.logger.log(fmt(C.bold + C.bgreen, `  [done] ${summary}`));
     return { done: true, summary };
   }
 
@@ -588,8 +781,9 @@ RAW PAPERS:
 ${JSON.stringify(rawPapers)}
 
 YOUR TASK:
-Select papers matching the main agent's focus and the user's criteria.
-Exclude papers that are not relevant to that focus.
+1. Select papers that strongly match the main agent's focus and the user's criteria ("papers")
+2. Select papers that might be relevant but are lower-confidence ("borderline")
+3. Exclude papers that are clearly irrelevant
 
 For each paper, include full data plus a brief "note".
 
@@ -598,34 +792,55 @@ Respond with valid JSON only:
   "papers": [
     { "id": "...", "title": "...", "year": ..., "authors": "...", "author_ids": {...}, "citations": ..., "abstract": "...", "note": "why this matches the focus" }
   ],
-  "summary": "What you found"
+  "borderline": [
+    { "id": "...", "title": "...", "year": ..., "authors": "...", "author_ids": {...}, "citations": ..., "abstract": "...", "note": "why this might be relevant but uncertain" }
+  ],
+  "summary": "What you found, including any coverage gaps"
 }`;
 
-    this.logger.log(`  [Reader] Filtering ${rawPapers.length} papers (focus: ${focus})`);
+    this.logger.log(fmt(C.bold + C.blue, `  [Reader: filtering]`) + fmt(C.dim, ` ${source} — ${rawPapers.length} papers`));
 
     try {
       const readerResult = await this.callReaderLLM(readerPrompt);
       const parsed = JSON.parse(readerResult);
       const selected = parsed.papers || [];
-      this.logger.log(`  [Reader] Selected ${selected.length} papers of ${rawPapers.length} papers`);
+      const borderline = parsed.borderline || [];
+
+      if (selected.length > 0) {
+        this.logger.log(fmt(C.bold + C.blue, `  [Reader: selected]`) + fmt(C.dim, ` ${selected.length} of ${rawPapers.length}`));
+        selected.forEach(p => this.logger.log(fmt(C.blue, `    · "${p.title}" (${p.year})`) + fmt(C.dim, ` [${p.authors || ''}] — ${p.note || ''}`)));
+      }
+      if (borderline.length > 0) {
+        this.logger.log(fmt(C.bold + C.blue, `  [Reader: borderline]`) + fmt(C.dim, ` ${borderline.length} of ${rawPapers.length}`));
+        borderline.forEach(p => this.logger.log(fmt(C.dim, `    ~ "${p.title}" (${p.year}) [${p.authors || ''}] — ${p.note || ''}`)));
+      }
+      if (selected.length === 0 && borderline.length === 0) {
+        this.logger.log(fmt(C.dim, `  [Reader: selected] 0 of ${rawPapers.length}`));
+      }
+      if (parsed.summary) {
+        this.logger.log(fmt(C.bold + C.blue, `  [Reader: summary]`) + fmt(C.dim, ` ${parsed.summary}`));
+      }
+
       return {
         papers: selected,
+        borderline,
         summary: parsed.summary || '',
         source,
         total_raw: rawPapers.length
       };
     } catch (e) {
-      // If reader fails, fall back to raw results
-      this.logger.warn(`  [Reader] Failed (${e.message}), returning raw results`);
-      return { papers: rawPapers, source, total_raw: rawPapers.length };
+      // If reader fails, return empty rather than flooding the agent with unfiltered results
+      this.logger.warn(fmt(C.yellow, `  [Reader: failed]`) + fmt(C.dim, ` ${e.message} — returning empty`));
+      return { papers: [], borderline: [], source, total_raw: rawPapers.length };
     }
   }
 
   async callReaderLLM(prompt) {
+    const messages = [{ role: 'user', content: prompt }];
     const start = Date.now();
+
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        this.logger.log(`[Reader LLM] Prompt:\n${prompt}`);
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -634,7 +849,7 @@ Respond with valid JSON only:
           },
           body: JSON.stringify({
             model: 'x-ai/grok-4.1-fast',
-            messages: [{ role: 'user', content: prompt }],
+            messages,
             max_tokens: this.maxCompletionTokens,
             reasoning: { enabled: true },
             response_format: { type: 'json_object' }
@@ -643,21 +858,44 @@ Respond with valid JSON only:
 
         if (!response.ok) {
           const errText = await response.text();
-          this.logger.error(`[Reader LLM] HTTP ${response.status}: ${errText}`);
+          this.logger.error(fmt(C.bred, `[reader] HTTP ${response.status}: ${errText.substring(0,200)}`));
           if (attempt < 2) { await this.sleep(2000); continue; }
           throw new Error(`Reader LLM error: ${response.status}`);
         }
 
         const data = await response.json();
-        const elapsed = Date.now() - start;
         this.timeStats.llmCalls++;
-        this.timeStats.llmTimeMs += elapsed;
+        this.timeStats.llmTimeMs += Date.now() - start;
 
-        this.logger.log(`[Reader LLM] Response:\n${data.choices[0].message.content}`);
-        return data.choices[0].message.content;
+        const choice = data.choices[0];
+        const readerSummaries = (choice.message.reasoning_details || [])
+          .filter(r => r.type === 'reasoning.summary' && r.summary)
+          .map(r => r.summary);
+        if (readerSummaries.length > 0) {
+          this.logger.log(fmt(C.bold + C.blue, `  [Reader thinking]`) + fmt(C.dim, ` ${readerSummaries.join('\n    │ ')}`));
+        }
+
+        const content = choice.message.content;
+        try {
+          JSON.parse(content); // validate
+          return content;
+        } catch (jsonErr) {
+          const truncated = choice.finish_reason === 'length'
+            || (data.usage?.completion_tokens >= this.maxCompletionTokens);
+          if (truncated) {
+            throw new Error(`Reader response truncated (hit token limit) — ${jsonErr.message}`);
+          }
+          if (attempt < 2) {
+            this.logger.warn(fmt(C.yellow, `  [Reader: bad JSON, retrying] ${jsonErr.message}`));
+            messages.push({ role: 'assistant', content });
+            messages.push({ role: 'user', content: 'Your response was not valid JSON. Please respond with valid JSON only, matching the schema requested.' });
+            continue;
+          }
+          throw new Error(`Reader returned invalid JSON after 3 attempts — ${jsonErr.message}`);
+        }
       } catch (e) {
         if (attempt < 2) {
-          this.logger.error(`[Reader LLM] Attempt ${attempt + 1} failed: ${e.message}`);
+          this.logger.error(fmt(C.bred, `[reader] Attempt ${attempt + 1} failed: ${e.message}`));
           await this.sleep(2000);
         } else {
           throw e;
@@ -677,7 +915,6 @@ Respond with valid JSON only:
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        this.logger.log(`[LLM] Request messages:\n${JSON.stringify(messages, null, 2)}`);
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -695,7 +932,7 @@ Respond with valid JSON only:
 
         if (!response.ok) {
           const errText = await response.text();
-          this.logger.error(`[LLM] HTTP ${response.status}: ${errText}`);
+          this.logger.error(fmt(C.bred, `[LLM] HTTP ${response.status}: ${errText.substring(0,200)}`));
           if (attempt < 2) { await this.sleep(3000); continue; }
           throw new Error(`LLM API error: ${response.status}`);
         }
@@ -706,7 +943,13 @@ Respond with valid JSON only:
         this.timeStats.llmTimeMs += elapsed;
 
         const choice = data.choices[0];
-        this.logger.log(`[LLM] Response message:\n${JSON.stringify(choice.message, null, 2)}`);
+        // Log reasoning summaries (encrypted blocks are intentionally opaque)
+        const reasoningSummaries = (choice.message.reasoning_details || [])
+          .filter(r => r.type === 'reasoning.summary' && r.summary)
+          .map(r => r.summary);
+        if (reasoningSummaries.length > 0) {
+          this.logger.log(fmt(C.bold + C.bcyan, `│ 💭 [Agent reasoning]`) + fmt(C.dim, ` ${reasoningSummaries.join('\n│   ')}`));
+        }
         return {
           message: choice.message,
           toolCalls: choice.message.tool_calls || [],
@@ -714,7 +957,7 @@ Respond with valid JSON only:
         };
       } catch (e) {
         if (attempt < 2) {
-          this.logger.error(`[LLM] Attempt ${attempt + 1} failed: ${e.message}`);
+          this.logger.error(fmt(C.bred, `[LLM] Attempt ${attempt + 1} failed: ${e.message}`));
           await this.sleep(3000);
         } else {
           throw e;
@@ -740,9 +983,9 @@ Respond with valid JSON only:
           pruned++;
         }
       }
-      if (pruned > 0) this.logger.log(`[Cache] Pruned ${pruned} stale entries`);
+      if (pruned > 0) this.logger.log(fmt(C.dim, `[cache] Pruned ${pruned} stale entries`));
     } catch (e) {
-      this.logger.warn(`Cache prune failed: ${e.message}`);
+      this.logger.warn(fmt(C.yellow, `Cache prune failed: ${e.message}`));
     }
   }
 
@@ -772,7 +1015,7 @@ Respond with valid JSON only:
     try {
       fs.writeFileSync(filePath, JSON.stringify(data));
     } catch (e) {
-      this.logger.warn(`Cache write failed: ${e.message}`);
+      this.logger.warn(fmt(C.yellow, `Cache write failed: ${e.message}`));
     }
   }
 
@@ -781,9 +1024,10 @@ Respond with valid JSON only:
     const cached = this.ssCacheGet(cacheKey);
     if (cached) {
       this.timeStats.ssCacheHits++;
-      this.logger.log(`  [Cache HIT] ${context}`);
+      this.logger.log(fmt(C.dim, `  [cache hit ] ${context}`));
       return { success: true, data: cached };
     }
+    this.logger.log(fmt(C.dim, `  [cache miss] ${context}`));
 
     const callStart = Date.now();
     const wait = Math.max(0, this.semanticScholarDelay - (Date.now() - this.lastSemanticScholarCall));
@@ -791,9 +1035,11 @@ Respond with valid JSON only:
 
     for (let attempt = 1; attempt <= 8; attempt++) {
       this.lastSemanticScholarCall = Date.now();
+      const headers = { ...(data.headers || {}) };
+      if (this.semanticScholarApiKey) headers['x-api-key'] = this.semanticScholarApiKey;
       const response = await fetch(data.url, {
         method: data.method || 'GET',
-        headers: data.headers || {},
+        headers,
         body: data.body ? JSON.stringify(data.body) : undefined
       });
 
@@ -808,7 +1054,7 @@ Respond with valid JSON only:
       if (response.status === 429) {
         this.timeStats.ssRetries++;
         const delay = 5000 * Math.pow(2, attempt - 1);
-        this.logger.warn(`429 Rate Limit. Retry ${attempt} in ${delay/1000}s...`);
+        this.logger.warn(fmt(C.yellow, `  [SS] 429 — retry ${attempt} in ${delay/1000}s`));
         await this.sleep(delay);
       } else {
         throw new Error(`SS API Error: ${response.status}`);

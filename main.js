@@ -21,7 +21,7 @@ const { ThroughlineAnalyzer } = require('./src/throughline-analyzer.js');
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_USER_CRITERIA = "I want to trace research lineages by following lab/author continuations and methodological evolution in robotic visual navigation. Find the distinct lab lineages that have emerged in the last 5 or so years. The seed paper seems to be one of those lineages that are high-quality, but I know there are others. Robotic navigation is what I'm interested in. It seems like the field is moving towards more and more end to end neural networks, which makes sense given the progress in LLM land. To be clear, I would just ask for a tracing of the SOTA progress over time in this field, but unfortunately the field doesn't seem to have a common set of benchmarks, and each lab focuses on their own evals. Well, there are a few common ones in VLM-for-nav land. So those are worth following. The seed is an older paper, so it won't refer to those, you'll have to find them.";
+const DEFAULT_USER_CRITERIA = "I want to trace research lineages by following lab/author continuations and methodological evolution in robotic visual navigation. Find the distinct lab lineages that have emerged in the last 5 or so years. The seed paper is kinda old, but seems to be one of those lineages that are high-quality, but I know there are others. Robotic navigation is what I'm interested in. It seems like the field is moving towards more and more neural networks, which makes sense given the progress in LLM land. So traditional SLAM is less interesting to me. \nTo be clear, I would just ask for a tracing of the SOTA progress over time in this field, but unfortunately the field doesn't seem to have a common set of benchmarks, and each lab focuses on their own evals. Well, there are a few common ones in VLM-for-nav land. So those are worth following. The seed is an older paper, so it won't refer to those, you'll have to find them.\nI'm coming at this as an engineer looking to adapt the latest research to an outdoor robot (not to say that indoor research won't be a important part of your search). So I don't really care about the details of implementation, and I'm not opinionated about anything except performance in real-world scenarios, and the adaptability/generality of solutions. For example, being able to give language instructions would be awesome.\n This is a very crowded research space, so I want you to go so deep that you find yourself going in circles, that's when you know you've gone deep enough, i.e. you've come across many the same papers from multiple independent angles.";
 
 // Load .env file if it exists
 function loadEnvFile() {
@@ -78,8 +78,6 @@ async function analyzePapers(papers, apiKey, options = {}) {
 
   const config = {
     openRouterApiKey: apiKey,
-    maxThreads: options.maxThreads || 10,
-    maxPapersPerThread: options.maxPapersPerThread || 15,
     clusteringCriteria: criteria,
     logger: {
       log: (...args) => console.log('[Throughline]', ...args),
@@ -154,7 +152,7 @@ function displayResults(results) {
     
     thread.papers.forEach((paper, j) => {
       const indent = j === 0 ? '     → ' : '       ';
-      console.log(`${indent}[${paper.year}] ${paper.title.substring(0, 60)}${paper.title.length > 60 ? '...' : ''}`);
+      console.log(`${indent}[${paper.year}] ${paper.title}`);
       if (paper.selectionReason && j > 0) {
         console.log(`         └─ ${paper.selectionReason}`);
       }
