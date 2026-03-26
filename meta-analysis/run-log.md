@@ -11,6 +11,149 @@
 | 5 (minIterations=20) | 1-2/13 | 875s, 9 iter, 7 tracks — Levine searched explicitly, still not found |
 | 6 (rationale field) | 0/13 | 1020s, 20 iter forced — agent done at iter 5, coasted 10-20 with no tools |
 | 7 (beefed up continuation prompt) | 3/13 | 860s — Active SLAM ✓, SemExp ✓, OmniVLA ✓; ag outdoor cluster discovered; still coasted iter 14-20 |
+| 8 (primer + track management + state injection) | 2/13 | 1228s, 20 iter, 7 tracks — Active SLAM ✓, SemExp ✓; primer built; track proliferation; still no Levine/PRIOR |
+| 9 (iteration count in continuation prompt) | 3/13 | 1392s, 20 iter, 9 tracks — Active SLAM ✓, SemExp ✓, ViNT ✓; GNM/NoMaD/LeLaN/OmniVLA FOUND by reader but NOT added; new failure mode: selective under-adding |
+| 10 (citation count quality heuristic in criteria) | 3/13 | 1007s, ~20 iter, 4 tracks — Active SLAM ✓, SemExp ✓, Diff. Spatial Planning ✓; Edinburgh bio-robotics tangent; no Levine search; citation heuristic didn't help |
+
+---
+
+## Run 10 — 2026-03-25 (citation count quality heuristic)
+**Duration**: 1007s | **Iterations**: ~20 | **Tracks**: 4 | **Papers**: 22
+**Score**: 3/13 — Active Neural SLAM ✓, SemExp ✓, Differentiable Spatial Planning ✓ (bonus)
+
+### New Features Being Tested
+User criteria updated to direct the agent to use relative citation counts as a quality proxy ("consider papers older than a year with few citations as noise").
+
+### Path Taken
+Standard seed citation/reference/author lookups. Broader searches on visual navigation topics. Created 4 tracks: CMU Chaplot/Gupta (Track 0), Meta Habitat (Track 1), Edinburgh Webb/Mangan bio-robotics (Track 2), Weerakoon/Elnoor VLM outdoor (Track 3).
+
+The Edinburgh bio-robotics track (insect mushroom body spiking networks for outdoor vegetation nav) is a genuinely novel discovery — real robots, outdoor vegetation, low-power neuromorphic approach. But it's an unusual tangent for this run and consumed exploration budget that run 9 spent on the Berkeley search.
+
+Track 1 (Meta Habitat) is 10 papers deep including Habitat-Web, ZSON, THDA, PIRLNav, VLFM, ETPNav, Navigating to Objects, Mobility VLA — solid coverage of the Habitat ecosystem but heavy on non-target papers.
+
+No search for Sergey Levine / Dhruv Shah at all. No ViNT, GNM, NoMaD, LeLaN, OmniVLA. The agent never directed exploration toward Berkeley.
+
+The primer was actively built with useful content: benchmarks (Habitat/R2R-CE/AI2-THOR), CMU and Meta lab lineages, Edinburgh bio-robotics, sim2real insights, ETPNav VLN-CE topo planners. But again no Berkeley B AIR entry.
+
+### What It Found
+- ✓ **CMU Track 0**: Active Neural SLAM ✓, SemExp ✓, Differentiable Spatial Planning (bonus), Plan-Seq-Learn (bonus), Under-Canopy Ag, SEAL
+- ✓ **Habitat Track 1**: Deep Habitat/Meta coverage — ZSON, Habitat-Web, HM3D-OVON, THDA, VLFM, FiLM-Nav, PIRLNav, ETPNav, Navigating to Objects, Mobility VLA
+- ✓ **Edinburgh bio-robotics Track 2**: Spatio-temporal Mushroom Body Memory (2020), Neuromorphic sequence learning with event cam (2023), Investigating visual nav with insect MB models (2024) — **new, not in landscape**
+- ✓ **Weerakoon/Elnoor Track 3**: VLM-Social-Nav, CoNVOI, VLM-GroNav (consistent)
+
+### What It Missed
+- **Entire Levine/Berkeley track** — no search directed there. Citation heuristic didn't serve as a forcing function toward high-impact Levine papers; the agent found plenty of other high-citation papers (Habitat ecosystem) and stopped there.
+- **GOAT** — still absent.
+- **PRIOR lab** — no search.
+
+### Citation Heuristic Assessment
+The instruction to use citations as a quality proxy had mixed effects. The agent correctly applied it when filtering noise, but it also added Edinburgh papers with very few citations (legitimately interesting niche work). The heuristic didn't steer the agent toward the Levine group — the agent would need to first discover those papers to notice their high citation counts.
+
+### Key Insight
+The run variance is high: run 9 found the Berkeley track; run 10 didn't, and instead found Edinburgh bio-robotics. The exploration path depends heavily on which searches fire early and what the reader surfaces. Without a structural mechanism forcing the agent toward specific lineages, performance is inconsistent. The agent's primer in run 9 contained a Berkeley B AIR entry; this run's primer doesn't — because the agent never found Berkeley papers to write about.
+
+---
+
+## Run 9 — 2026-03-25 (iteration count in continuation prompt)
+**Duration**: 1392s | **Iterations**: 20 | **SS calls**: ~25 | **LLM calls**: ~49
+**Score**: 3/13 — Active Neural SLAM ✓, SemExp ✓, ViNT ✓
+
+### New Features Being Tested
+Continuation prompt now tells the agent its current iteration and the minimum: "You're only on iteration X, you should at least go as deep as MIN_ITERATIONS iterations."
+
+### Path Taken
+Standard start: seed citations (cache hit), references. Author lookups on Chaplot, Saurabh Gupta. Broader searches. Tracks 0-4 created in iterations 1-3 (same pattern as run 8: Chaplot, Elnoor/Weerakoon, Tan/Wang, Garg, Cao).
+
+**Iteration 4**: Agent called done. Got the new message: "You're only on iteration 4, you should at least go as deep as 20 iterations." Continued.
+
+**Iteration 4 (continued)**: Searched "sergey levine robot visual navigation neural" — explicitly rationale'd as "Berkeley/Levine lab neural RL nav lineage for completeness." Reader selected OmniVLA, ViNT, Offline RL. Agent created **Track 5: Berkeley Shah/Levine**. Attempted to add OmniVLA (ID lookup may have failed). Then did a **Dhruv Shah author lookup** — reader returned **17 selected papers** including every Levine target: GNM ✓, ViNT ✓, NoMaD ✓, LeLaN ✓, OmniVLA ✓, plus ViKiNG, RECON, ViNG, LM-Nav, ExAug, Navigation with LLMs, Offline RL, AsyncVLA, SELFI.
+
+**Iteration 5**: Primer updated with Berkeley B AIR lineage entry (Offline RL → ViNT → OmniVLA).
+
+**Iteration 6**: No tool calls. Passive resistance.
+
+**Iteration 7**: Added ViNT, LM-Nav, Offline RL to Track 5 — only 3 of the 17 selected papers.
+
+**Iteration 8**: No tool calls.
+
+**Iteration 9**: Agent called done again. "You're only on iteration 9, you should at least go as deep as 20 iterations." Continued.
+
+**Iterations 10-20**: Various searches (Pieter Abbeel, Waymo outdoor, multi-robot). New tracks: Diffusion Policy nav, Aerial drone nav. Primer updated with gaps section.
+
+### What It Found
+- ✓ **CMU track**: Active Neural SLAM ✓, SemExp ✓, Plan-Seq-Learn (bonus)
+- ✓ **Berkeley Track 5**: ViNT ✓ — first time a Levine paper made it into a final track
+- ✓ **Cao, Garg, Elnoor/Weerakoon, NaVILA**: consistent with prior runs
+- ✓ New tracks: Diffusion Policy nav, Aerial nav, Tan/Wang VLM social
+- ✓ **Research primer** populated with Berkeley B AIR lineage entry
+
+### What It Missed — And Why
+**GNM, NoMaD, LeLaN, OmniVLA**: All four were **selected by the reader** from Shah author lookup. They were sitting in the agent's context window. The agent added 3 papers from that batch, then went passive (iteration 6 no-tool-calls, iteration 7 partial adds, iteration 8 no-tool-calls). It never came back to add the remaining 14 selected Shah papers. **This is not a discovery failure — it's a selective under-adding failure.** The papers were found; the agent just didn't process them all.
+
+**MBRA**: Didn't appear in the Shah reader results (2025 paper, possibly not yet in SS or under a different query).
+
+**GOAT**: Still absent from Chaplot author lookup results.
+
+**PRIOR lab**: Never reached — no search toward Allen Institute.
+
+### New Failure Mode: Selective Under-Adding
+The iteration forcing is working: the agent now does the Berkeley search it was avoiding. But it only adds a handful of the papers the reader surfaces before passive resistance kicks in. The reader found the entire Levine lineage in one call; the agent picked 3 and stopped. The continuation prompt addresses the "won't search" problem but not the "won't add" problem.
+
+The fix is probably to prompt the agent to process ALL papers from a reader response before moving on, or to inject the selected-but-not-added papers back into a subsequent continuation message.
+
+### Comparison to Run 8
+Run 8: 2/13, no Levine papers found at all.
+Run 9: 3/13, Levine track created, ViNT added — but GNM/NoMaD/LeLaN/OmniVLA in hand and not added. The iteration count message successfully triggered the Berkeley search. It's doing the right work, just incompletely.
+
+---
+
+## Run 8 — 2026-03-23 (primer + track management + state injection)
+**Duration**: 1228s | **Iterations**: 20 | **SS calls**: 25 (16 cache hits, 1 retry) | **LLM calls**: 49
+**Score**: 2/13 — Active Neural SLAM ✓, SemExp ✓
+
+### New Features Being Tested
+- Research primer: agent maintains a living doc of concepts/terminology, injected into reader prompt
+- Track management tools: rename_track, delete_track, remove_papers_from_track
+- Track state injection: full track state injected as user message every 5 add_paper_to_track calls
+
+### Path Taken
+Standard Phase 1: seed citations (cached, 19 selected), seed references. Author lookups on Chaplot (cached) and Saurabh Gupta. Broader searches: "neural visual navigation robot real-world", "outdoor neural visual navigation traversability", "vision language model robot navigation outdoor real-world".
+
+The agent actively built the primer in iterations 1-4, appending key concepts (image-goal nav, object-goal nav, topological SLAM, benchmarks) and then a section on distinct lab lineages (Chaplot-Gupta, Habitat/Meta). This is the first run where the primer was actually used.
+
+Track creation in iterations 2-3: 6 tracks initially (Chaplot-Gupta, Habitat OVON-VLM, Cao-Johnson Feudal, Garg Topometric, Elnoor/Weerakoon VLM-Grounded, NaVILA Legged VLA). Track 1 was renamed mid-run. A 7th track (Legged Traversability-Aware Outdoor Navigation) was added in iteration 7 after exploration of ETH/Hutter-style legged outdoor papers.
+
+Iterations 4-7: deep dives on Habitat benchmark (HM3D-OVON citations), Cao lab (YOPO-Nav citations), Elnoor/Weerakoon outdoor VLM papers, legged outdoor navigation. Searches for "ETH Zurich legged robot neural visual navigation outdoor" and "DPO vision language navigation robot" and "ANYmal ETH Zurich legged nav lab".
+
+Iterations 8-14: Marco Hutter author lookup (ETH ANYmal), Stanford VLN search, Mapillary/Google search (no hits), Boston Dynamics Spot search. The agent confirmed it was "going in circles" repeatedly.
+
+Iterations 15-20: more confirmation of circularity, no new discoveries. Called done at iteration 20 (minIterations threshold).
+
+### What It Found
+- ✓ **CMU track** (partial): Active Neural SLAM ✓, SemExp ✓, Plan-Seq-Learn ✓ (bonus, not a target), plus Under-Canopy Ag Nav and No-RL-No-Sim
+- ✓ **Cao lab**: YOPO-Nav, FeudalNav (consistent across runs)
+- ✓ **Garg lab**: TANGO, ObjectReact (consistent)
+- ✓ **Elnoor/Weerakoon outdoor VLM**: VLM-GroNav, CoNVOI (new track, good real-world outdoor coverage)
+- ✓ **Habitat OVON-VLM**: HM3D-OVON, FiLM-Nav, Hydra-Nav (new territory, benchmark-adjacent papers)
+- ✓ **NaVILA**: one-paper track for legged VLA
+- ✓ **Legged traversability**: Traversability-Aware Legged Nav, VERN (real-world outdoor, interesting but not targets)
+- ✓ **Research primer built** — populated with key concepts and lab lineages; agent used append_to_primer twice
+
+### What It Missed
+- **GOAT** (Chaplot 2024) — Track 0 contains Active SLAM and SemExp but not GOAT. Chaplot moved to Meta AI post-2022; GOAT may not appear in Chaplot's SS author profile under the same ID as the seed-paper Chaplot.
+- **Entire Levine/Berkeley track** (GNM, ViNT, NoMaD, LeLaN, OmniVLA, MBRA) — zero Levine papers found. The agent built a primer entry on Chaplot-Gupta lineage but never on Berkeley/Levine. Despite the primer, the agent never issued a search that would surface the Levine group.
+- **PRIOR lab** (PoliFormer, FLaRe, RING) — no search ever reached PRIOR/Allen Institute territory.
+
+### New Features Assessment
+- **Primer**: Actively built, populated with real content. Reader injection promising in principle but didn't help this run because the agent's search strategy never targeted Levine — the reader never got a chance to apply the terminology bridge. The feature is working mechanically; the limiting factor is upstream (agent search choices).
+- **Track management**: No rename/delete/remove calls were made beyond one rename. The agent created well-scoped tracks directly and didn't need to reorganize. The tools are available; the agent just didn't need them this run.
+- **Track state injection**: Injection fired multiple times (at 5, 10, 15 adds). The passive resistance problem (no tool calls after deciding it's done) is somewhat reduced — the agent made tool calls through most iterations. However, final iterations (15-20) were still low-productivity.
+
+### Root Cause of Score Regression vs. Run 7
+Run 7 scored 3/13 (Active SLAM, SemExp, OmniVLA). Run 8 scored 2/13 (Active SLAM, SemExp). The regression is OmniVLA: run 7 found it via a broader author/search path that happened to surface Shah papers; run 8 never did a Shah author lookup or a "ViNT foundation model" style search. The 7-track structure caused the agent to distribute effort across legged outdoor, Habitat OVON, and VLM-outdoor tracks — all interesting but not targets — at the expense of depth on the Levine lineage.
+
+### Key Structural Observation
+The fundamental miss is consistent: **the agent never searches for Levine/Berkeley papers.** The primer describes Chaplot-Gupta lineage. If the primer also described the Berkeley foundation-model-for-nav lineage (GNM → ViNT → NoMaD → LeLaN → OmniVLA), and the system prompt told the agent to build out ALL lineages it knows about, there would be a forcing function to search for them. The primer is a vehicle for this — but the agent needs to write it first, which requires having encountered the lineage first, which requires a search. Chicken-and-egg.
 
 ---
 

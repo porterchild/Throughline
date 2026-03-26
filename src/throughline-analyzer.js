@@ -120,7 +120,7 @@ class ThroughlineAnalyzer {
     this.logger.log(fmt(C.bold + C.bgreen, '═'.repeat(70)) + '\n');
 
     this.updateProgress('Analysis complete', `Found ${this.threads.length} research threads`, 100);
-    return this.threads;
+    return { threads: this.threads, primer: this.primer };
   }
 
   async resolvePaperId(paper) {
@@ -169,7 +169,7 @@ You maintain two artifacts in parallel — both are equally important:
    - Terminology map: different words/labels for the same underlying idea across communities or time periods
    - The landscape of ideas as they relate to the user's criteria
 
-Be curious, and develop an understanding of the research relevant to the User's criteria in these artifacts. They are the results that the User will get.
+Be curious, and develop an understanding of the research relevant to the User's criteria in these artifacts. They are the results that the User will get. Do not conflate the two artifacts (e.g. don't repeat the tracks in the primer).
 
 Before each tool call, briefly decide:
 - what remains uncertain under the user's criteria
@@ -186,10 +186,13 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     let iterations = 0;
     const maxIterations = 40;
     const minIterations = this.minIterations || 20;
+    this.currentIteration = 0;
+    this.minIterations = minIterations;
 
     while (iterations < maxIterations) {
       if (await this.checkStopped()) throw new Error('Analysis stopped by user');
       iterations++;
+      this.currentIteration = iterations;
 
       const totalPapers = this.threads.reduce((sum, t) => sum + t.papers.length, 0);
       this.logger.log(fmt(C.bold + C.bcyan, `\n┌─ Iteration ${iterations} `) + fmt(C.dim, `(${this.threads.length} tracks, ${totalPapers} papers)`));
@@ -285,7 +288,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       if (agentDone) {
         if (iterations < minIterations) {
           this.logger.log(fmt(C.yellow, `└─ Agent signaled done at iteration ${iterations} (minimum is ${minIterations}) — continuing.`));
-          messages.push({ role: 'user', content: "Making progress! But you haven't explored enough yet. Assume there is important research for the user that you haven't found yet. Continue exploring. If you feel you're going in circles, step back, survey what you've covered, and look for gaps or new directions. The literature is vast, it would be a bit arrogant to assume you're done already! You will keep recieving this message until the proper level of exploration has been done. Go get'em Tiger!" });
+          messages.push({ role: 'user', content: `Making progress! But you haven't explored enough yet. You're only on iteration ${iterations}, you should at least go as deep as ${minIterations} iterations. Assume there is important research for the user that you haven't found yet. Continue exploring. If you feel you're going in circles, step back, survey what you've covered, and look for gaps or new directions. The literature is vast, it would be a bit arrogant to assume you're done already!. When in doubt, go for more breadth, not depth. \n Do NOT just ignore this and pretend you know better. This is NOT a sneaky test of your "persistence" or something, you actually need to keep exploring! Past versions of you produced much worse results when they ended too early, and much better results when they kept honestly exploring, so keep going.` });
         } else {
           this.logger.log(fmt(C.bold + C.bgreen, '└─ Agent signaled done.'));
           break;
@@ -739,7 +742,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
   toolViewTracks() {
     const summary = this.buildTrackSummary();
-    this.logger.log(fmt(C.bold + C.bwhite, `│ [view_tracks]`));
+    this.logger.log(fmt(C.bold + C.bwhite, `│ [view_tracks]\n`) + fmt(C.white, summary));
     return { summary };
   }
 
@@ -788,8 +791,9 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   }
 
   toolViewPrimer() {
-    this.logger.log(fmt(C.bold + C.bwhite, `│ [view_primer]`));
-    return { primer: this.primer || '(empty)' };
+    const content = this.primer || '(empty)';
+    this.logger.log(fmt(C.bold + C.bwhite, `│ [view_primer]\n`) + fmt(C.white, content));
+    return { primer: content };
   }
 
   toolAppendToPrimer({ content }) {
@@ -808,6 +812,11 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   }
 
   toolDone({ summary }) {
+    if (this.currentIteration < this.minIterations) {
+      const remaining = this.minIterations - this.currentIteration;
+      this.logger.log(fmt(C.yellow, `  [done blocked] iteration ${this.currentIteration}/${this.minIterations}`));
+      return { error: `Too early to stop. You are on iteration ${this.currentIteration} but must complete at least ${this.minIterations} iterations (${remaining} more to go). Keep exploring.` };
+    }
     this.logger.log(fmt(C.bold + C.bgreen, `  [done] ${summary}`));
     return { done: true, summary };
   }
