@@ -13,6 +13,7 @@ const C = {
   green:   '\x1b[32m',
   yellow:  '\x1b[33m',
   blue:    '\x1b[34m',
+  brown:   '\x1b[33m',  // dim yellow renders as brown in most terminals
   magenta: '\x1b[35m',
   cyan:    '\x1b[36m',
   white:   '\x1b[37m',
@@ -41,13 +42,13 @@ class ThroughlineAnalyzer {
     this.paperStore = new Map();
     this.processedPapers = new Set(); // paper IDs already added to any track
     this.paperIdCache = new Map();
-    this.minIterations = apiConfig.minIterations || 20;
+    this.minIterations = apiConfig.minIterations || 40;
     this.progressCallback = null;
     this.debugTree = [];
     this.stopped = false;
     this.seedPapers = [];
 
-    this.timeStats = { llmCalls: 0, llmTimeMs: 0, ssCalls: 0, ssTimeMs: 0, ssRetries: 0, ssCacheHits: 0 };
+    this.timeStats = { agentCalls: 0, agentTimeMs: 0, agentTimings: [], readerCalls: 0, readerTimeMs: 0, readerTimings: [], ssCalls: 0, ssTimeMs: 0, ssTimings: [], ssRetries: 0, ssCacheHits: 0 };
     this.addPaperCallCount = 0;
     this.primer = '';
 
@@ -116,7 +117,17 @@ class ThroughlineAnalyzer {
     this.logger.log(fmt(C.bold + C.bgreen, '  ANALYSIS COMPLETE'));
     this.logger.log(fmt(C.bold + C.bgreen, '═'.repeat(70)));
     this.logger.log(fmt(C.bwhite, `  Threads: ${this.threads.length}  |  Papers: ${this.threads.reduce((sum, t) => sum + t.papers.length, 0)}  |  Time: ${totalTime}s`));
-    this.logger.log(fmt(C.dim, `  LLM: ${this.timeStats.llmCalls} calls ${(this.timeStats.llmTimeMs/1000).toFixed(1)}s  |  SS: ${this.timeStats.ssCalls} calls ${(this.timeStats.ssTimeMs/1000).toFixed(1)}s  |  Cache hits: ${this.timeStats.ssCacheHits}  |  429 retries: ${this.timeStats.ssRetries}`));
+    const ts = this.timeStats;
+    const pct = (ms) => totalTime > 0 ? ((ms / 1000) / totalTime * 100).toFixed(0) + '%' : '?';
+    const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+    const max = (arr) => arr.length ? Math.round(Math.max(...arr)) : 0;
+    const bar = (ms) => '█'.repeat(Math.round((ms / 1000) / totalTime * 20));
+    const unaccounted = totalTime - (ts.agentTimeMs + ts.readerTimeMs + ts.ssTimeMs) / 1000;
+    this.logger.log(fmt(C.bwhite, `\n  Time breakdown (total ${totalTime}s):`));
+    this.logger.log(fmt(C.bcyan,  `  Agent  LLM │${bar(ts.agentTimeMs).padEnd(20)}│ ${(ts.agentTimeMs/1000).toFixed(1)}s ${pct(ts.agentTimeMs)} — ${ts.agentCalls} calls, avg ${avg(ts.agentTimings)}ms, max ${max(ts.agentTimings)}ms`));
+    this.logger.log(fmt(C.brown,  `  Reader LLM │${bar(ts.readerTimeMs).padEnd(20)}│ ${(ts.readerTimeMs/1000).toFixed(1)}s ${pct(ts.readerTimeMs)} — ${ts.readerCalls} calls, avg ${avg(ts.readerTimings)}ms, max ${max(ts.readerTimings)}ms`));
+    this.logger.log(fmt(C.green,  `  SS API     │${bar(ts.ssTimeMs).padEnd(20)}│ ${(ts.ssTimeMs/1000).toFixed(1)}s ${pct(ts.ssTimeMs)} — ${ts.ssCalls} calls, avg ${avg(ts.ssTimings)}ms, max ${max(ts.ssTimings)}ms (${ts.ssCacheHits} cache hits, ${ts.ssRetries} retries)`));
+    this.logger.log(fmt(C.dim,    `  Other/wait  │${'░'.repeat(20)}│ ${unaccounted.toFixed(1)}s ${((unaccounted/totalTime)*100).toFixed(0)}% (rate-limit waits, overhead)`));
     this.logger.log(fmt(C.bold + C.bgreen, '═'.repeat(70)) + '\n');
 
     this.updateProgress('Analysis complete', `Found ${this.threads.length} research threads`, 100);
@@ -171,9 +182,12 @@ You maintain two artifacts in parallel — both are equally important:
 
 Be curious, and develop an understanding of the research relevant to the User's criteria in these artifacts. They are the results that the User will get. Do not conflate the two artifacts (e.g. don't repeat the tracks in the primer).
 
-Before each tool call, briefly decide:
+Before each response, briefly decide:
 - what remains uncertain under the user's criteria
-- which single tool call will reduce that uncertainty the most
+- which tool calls will reduce that uncertainty the most
+
+You can make multiple tool calls in a single response — use this when you have independent questions that don't depend on each other's results (e.g. fetching citations of paper A while simultaneously fetching author papers for author B). Batching independent calls is faster and encouraged.
+
 Keep candidate directions provisional until you can explain why a candidate is distinct enough, under the user's criteria, to deserve its own track rather than remaining supporting evidence for another track.
 
 Tool calls that return papers will show you paper IDs and author IDs. You need paper IDs to add papers to tracks or to look up their citations/references. Use author IDs (from paper results) with get_author_papers for precise lookups. Papers must appear in a tool result before you can add them.`;
@@ -184,7 +198,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     ];
 
     let iterations = 0;
-    const maxIterations = 40;
+    const maxIterations = 100;
     const minIterations = this.minIterations || 20;
     this.currentIteration = 0;
     this.minIterations = minIterations;
@@ -214,8 +228,8 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
       if (!response.toolCalls || response.toolCalls.length === 0) {
         if (iterations < minIterations) {
-          this.logger.log(fmt(C.yellow, `│ (no tool calls at iteration ${iterations}, minimum is ${minIterations}) — continuing.`));
-          messages.push({ role: 'user', content: "Haven't explored enough yet. Assume there is important research for the user that you haven't found yet. Continue exploring." });
+          this.logger.log(fmt(C.yellow, `│ (no tool calls at iteration ${iterations}/${minIterations}) — injecting error`));
+          messages.push({ role: 'user', content: `You must call a tool. You are on iteration ${iterations} of a minimum ${minIterations}. Keep exploring.` });
           continue;
         }
         this.logger.log(fmt(C.dim, '│ (no tool calls — agent finished)'));
@@ -238,7 +252,6 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         const argSummary = toolArgs.paper_id ? `paper:${toolArgs.paper_id}`
           : toolArgs.query ? `"${toolArgs.query}"`
           : toolArgs.author_id ? `author_id:${toolArgs.author_id}`
-          : toolArgs.author_name ? `"${toolArgs.author_name}"`
           : toolArgs.theme ? `"${toolArgs.theme}"`
           : toolArgs.track_index !== undefined ? `track:${toolArgs.track_index}`
           : '';
@@ -249,7 +262,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         const result = await this.executeTool(toolName, toolArgs);
         messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
 
-        if (toolName === 'done') agentDone = true;
+        if (toolName === 'done' && result.done) agentDone = true;
 
         // Log result
         if (result.error) {
@@ -286,13 +299,8 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       }
 
       if (agentDone) {
-        if (iterations < minIterations) {
-          this.logger.log(fmt(C.yellow, `└─ Agent signaled done at iteration ${iterations} (minimum is ${minIterations}) — continuing.`));
-          messages.push({ role: 'user', content: `Making progress! But you haven't explored enough yet. You're only on iteration ${iterations}, you should at least go as deep as ${minIterations} iterations. Assume there is important research for the user that you haven't found yet. Continue exploring. If you feel you're going in circles, step back, survey what you've covered, and look for gaps or new directions. The literature is vast, it would be a bit arrogant to assume you're done already!. When in doubt, go for more breadth, not depth. \n Do NOT just ignore this and pretend you know better. This is NOT a sneaky test of your "persistence" or something, you actually need to keep exploring! Past versions of you produced much worse results when they ended too early, and much better results when they kept honestly exploring, so keep going.` });
-        } else {
-          this.logger.log(fmt(C.bold + C.bgreen, '└─ Agent signaled done.'));
-          break;
-        }
+        this.logger.log(fmt(C.bold + C.bgreen, '└─ Agent signaled done.'));
+        break;
       }
     }
 
@@ -309,7 +317,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         type: 'function',
         function: {
           name: 'search_papers',
-          description: 'Search Semantic Scholar for papers matching a query. Results are filtered by a reader model based on your focus instructions. Short keyword phrases (2-4 words) work best.',
+          description: 'Search Semantic Scholar for papers matching a query. Results are filtered by a reader model based on your focus instructions. Short keyword phrases (2-4 words) work best. Good for jumping into a new subfield or finding papers with no citation path to anything you have already found. Less effective than get_author_papers for finding all work from a specific person or group. Results are sensitive to exact phrasing — if a search is important, try it from a few different angles (different terminology, synonyms, author names) rather than relying on a single query.',
           parameters: {
             type: 'object',
             properties: {
@@ -327,7 +335,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         type: 'function',
         function: {
           name: 'get_paper_citations',
-          description: 'Get papers that cite a given paper (forward citations). Results are filtered by a reader model based on your focus instructions.',
+          description: 'Get papers that cite a given paper (forward citations). Results are filtered by a reader model based on your focus instructions. The forward-in-time probe: good for finding successors, groups that built on a specific idea, and methodological descendants. Use on high-influence papers to discover entire downstream lineages.',
           parameters: {
             type: 'object',
             properties: {
@@ -344,7 +352,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         type: 'function',
         function: {
           name: 'get_paper_references',
-          description: 'Get papers referenced by a given paper (backward references). Results are filtered by a reader model based on your focus instructions.',
+          description: 'Get papers referenced by a given paper (backward references). Results are filtered by a reader model based on your focus instructions. The backward-in-time probe: good for grounding a newly discovered paper in its ancestors, understanding which prior tradition it belongs to, and finding foundational work that the forward citation graph may not surface.',
           parameters: {
             type: 'object',
             properties: {
@@ -361,7 +369,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         type: 'function',
         function: {
           name: 'get_recommendations',
-          description: 'Get papers similar to a given paper via Semantic Scholar recommendations. Results are filtered by a reader model based on your focus instructions.',
+          description: 'Get papers similar to a given paper via Semantic Scholar recommendations. Results are filtered by a reader model based on your focus instructions. The lateral probe: good for discovering work that is thematically related but shares no citation path — parallel threads that never cited each other. Most useful when citations have gone dry and you want to find adjacent clusters. Results vary by seed paper — if one seed yields little, try recommendations from a different paper in the same area.',
           parameters: {
             type: 'object',
             properties: {
@@ -377,18 +385,32 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       {
         type: 'function',
         function: {
-          name: 'get_author_papers',
-          description: 'Get an author\'s publications. Prefer using author_id (from paper results) over author_name to avoid disambiguation issues with common names. Results are filtered by a reader model based on your focus instructions.',
+          name: 'search_authors',
+          description: 'Search Semantic Scholar for authors by name. Returns a ranked list of matching authors with their IDs, h-indexes, and paper counts. Use this when you want to explore a researcher\'s work but don\'t yet have their author ID. Call this first, then use get_author_papers with the correct ID.',
           parameters: {
             type: 'object',
             properties: {
               rationale: { type: 'string', description: RATIONALE_DESC },
-              author_id: { type: 'string', description: 'Semantic Scholar author ID from paper results (preferred — avoids wrong-person issues)' },
-              author_name: { type: 'string', description: 'Author name to search for (fallback if no ID available)' },
+              query: { type: 'string', description: 'Author name to search for' }
+            },
+            required: ['rationale', 'query']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'get_author_papers',
+          description: 'Get an author\'s publications by their Semantic Scholar author ID. Results are filtered by a reader model based on your focus instructions. Best for rapidly pulling an entire group\'s output: when you find one strong paper, look up its authors to surface the rest of their work at once. More reliable than searching by lab or institution name. If you don\'t have an author ID, use search_authors first.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
+              author_id: { type: 'string', description: 'Semantic Scholar author ID' },
               focus: { type: 'string', description: 'What you are looking for in these results. The reader model uses this to filter and highlight relevant papers.' },
               min_year: { type: 'integer', description: 'Minimum publication year' }
             },
-            required: ['rationale', 'focus']
+            required: ['rationale', 'author_id', 'focus']
           }
         }
       },
@@ -559,6 +581,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         case 'get_paper_citations': return await this.toolGetCitations(args);
         case 'get_paper_references': return await this.toolGetReferences(args);
         case 'get_recommendations': return await this.toolGetRecommendations(args);
+        case 'search_authors': return await this.toolSearchAuthors(args);
         case 'get_author_papers': return await this.toolGetAuthorPapers(args);
         case 'create_track': return this.toolCreateTrack(args);
         case 'add_paper_to_track': return this.toolAddPaperToTrack(args);
@@ -632,39 +655,35 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     return await this.filterWithReader(papers, focus, `recommendations for "${sourceTitle}"`);
   }
 
-  async toolGetAuthorPapers({ author_id, author_name, focus, min_year }) {
-    let authorId, authorName, authorHIndex, authorPaperCount;
+  async toolSearchAuthors({ query }) {
+    const resp = await this.throttledSemanticScholarCall({
+      url: `https://api.semanticscholar.org/graph/v1/author/search?query=${encodeURIComponent(query)}&fields=name,paperCount,hIndex&limit=10`,
+      method: 'GET'
+    }, `author search: ${query}`);
+    const authors = (resp.data?.data || []).map(a => ({
+      author_id: a.authorId,
+      name: a.name,
+      hIndex: a.hIndex,
+      paperCount: a.paperCount
+    }));
+    if (authors.length === 0) return { error: `No authors found for "${query}"` };
+    this.logger.log(fmt(C.cyan, `  [author search] "${query}" → ${authors.length} results`));
+    return { authors };
+  }
 
-    if (author_id) {
-      // Direct lookup by ID — no disambiguation needed
-      const infoResp = await this.throttledSemanticScholarCall({
-        url: `https://api.semanticscholar.org/graph/v1/author/${author_id}?fields=name,paperCount,hIndex`,
-        method: 'GET'
-      }, `author info: ${author_id}`);
-      authorId = author_id;
-      authorName = infoResp.data.name;
-      authorHIndex = infoResp.data.hIndex;
-      authorPaperCount = infoResp.data.paperCount;
-    } else if (author_name) {
-      // Search by name — may be ambiguous for common names
-      const searchResp = await this.throttledSemanticScholarCall({
-        url: `https://api.semanticscholar.org/graph/v1/author/search?query=${encodeURIComponent(author_name)}&fields=name,paperCount,hIndex&limit=5`,
-        method: 'GET'
-      }, `author search: ${author_name}`);
-      const authors = searchResp.data.data || [];
-      if (authors.length === 0) return { error: `No author found for "${author_name}"` };
-      const author = authors.reduce((best, a) => (a.hIndex || 0) > (best.hIndex || 0) ? a : best, authors[0]);
-      authorId = author.authorId;
-      authorName = author.name;
-      authorHIndex = author.hIndex;
-      authorPaperCount = author.paperCount;
-    } else {
-      return { error: 'Provide either author_id or author_name' };
-    }
+  async toolGetAuthorPapers({ author_id, focus, min_year }) {
+    const infoResp = await this.throttledSemanticScholarCall({
+      url: `https://api.semanticscholar.org/graph/v1/author/${author_id}?fields=name,paperCount,hIndex`,
+      method: 'GET'
+    }, `author info: ${author_id}`);
+    if (!infoResp.data) return { error: `Author ID ${author_id} not found. Use search_authors to find the correct ID.` };
+    const authorName = infoResp.data.name;
+    const authorHIndex = infoResp.data.hIndex;
+    const authorPaperCount = infoResp.data.paperCount;
 
-    this.logger.log(fmt(C.cyan, `  [author] ${authorName}`) + fmt(C.dim, `  h-index:${authorHIndex}  papers:${authorPaperCount}  id:${authorId}`));
+    this.logger.log(fmt(C.cyan, `  [author] ${authorName}`) + fmt(C.dim, `  h-index:${authorHIndex}  papers:${authorPaperCount}  id:${author_id}`));
 
-    let url = `https://api.semanticscholar.org/graph/v1/author/${authorId}/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=50`;
+    let url = `https://api.semanticscholar.org/graph/v1/author/${author_id}/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=50`;
     if (min_year) url += `&publicationDateOrYear=${min_year}:`;
     const papersResp = await this.throttledSemanticScholarCall({ url, method: 'GET' }, `author papers: ${authorName}`);
     const papers = (papersResp.data.data || []).filter(p => p && p.paperId);
@@ -710,7 +729,9 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     }
 
     paper.selectionReason = reason;
-    track.papers.push(paper);
+    const insertIdx = track.papers.findIndex(p => (p.year || 0) > (paper.year || 0));
+    if (insertIdx === -1) track.papers.push(paper);
+    else track.papers.splice(insertIdx, 0, paper);
     this.processedPapers.add(paper_id);
     this.processedPapers.add(paper.title);
 
@@ -815,7 +836,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     if (this.currentIteration < this.minIterations) {
       const remaining = this.minIterations - this.currentIteration;
       this.logger.log(fmt(C.yellow, `  [done blocked] iteration ${this.currentIteration}/${this.minIterations}`));
-      return { error: `Too early to stop. You are on iteration ${this.currentIteration} but must complete at least ${this.minIterations} iterations (${remaining} more to go). Keep exploring.` };
+      return { error: `Too early to stop. You are on iteration ${this.currentIteration} but must complete at least ${this.minIterations} iterations (${remaining} more to go). Keep exploring according to the user's interest.` };
     }
     this.logger.log(fmt(C.bold + C.bgreen, `  [done] ${summary}`));
     return { done: true, summary };
@@ -893,7 +914,7 @@ Respond with valid JSON only:
   "summary": "What you found, including any coverage gaps"
 }`;
 
-    this.logger.log(fmt(C.bold + C.blue, `  [Reader: filtering]`) + fmt(C.dim, ` ${source} — ${rawPapers.length} papers`));
+    this.logger.log(fmt(C.bold + C.brown, `  [Reader: filtering]`) + fmt(C.dim, ` ${source} — ${rawPapers.length} papers`));
 
     try {
       const readerResult = await this.callReaderLLM(readerPrompt);
@@ -902,18 +923,18 @@ Respond with valid JSON only:
       const borderline = parsed.borderline || [];
 
       if (selected.length > 0) {
-        this.logger.log(fmt(C.bold + C.blue, `  [Reader: selected]`) + fmt(C.dim, ` ${selected.length} of ${rawPapers.length}`));
-        selected.forEach(p => this.logger.log(fmt(C.blue, `    · "${p.title}" (${p.year})`) + fmt(C.dim, ` [${p.authors || ''}] — ${p.note || ''}`)));
+        this.logger.log(fmt(C.bold + C.brown, `  [Reader: selected]`) + fmt(C.dim, ` ${selected.length} of ${rawPapers.length}`));
+        selected.forEach(p => this.logger.log(fmt(C.brown, `    · "${p.title}" (${p.year})`) + fmt(C.dim, ` [${p.authors || ''}] — ${p.note || ''}`)));
       }
       if (borderline.length > 0) {
-        this.logger.log(fmt(C.bold + C.blue, `  [Reader: borderline]`) + fmt(C.dim, ` ${borderline.length} of ${rawPapers.length}`));
+        this.logger.log(fmt(C.bold + C.brown, `  [Reader: borderline]`) + fmt(C.dim, ` ${borderline.length} of ${rawPapers.length}`));
         borderline.forEach(p => this.logger.log(fmt(C.dim, `    ~ "${p.title}" (${p.year}) [${p.authors || ''}] — ${p.note || ''}`)));
       }
       if (selected.length === 0 && borderline.length === 0) {
         this.logger.log(fmt(C.dim, `  [Reader: selected] 0 of ${rawPapers.length}`));
       }
       if (parsed.summary) {
-        this.logger.log(fmt(C.bold + C.blue, `  [Reader: summary]`) + fmt(C.dim, ` ${parsed.summary}`));
+        this.logger.log(fmt(C.bold + C.brown, `  [Reader: summary]`) + fmt(C.dim, ` ${parsed.summary}`));
       }
 
       return {
@@ -943,7 +964,7 @@ Respond with valid JSON only:
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'x-ai/grok-4.1-fast',
+            model: 'google/gemini-3-flash-preview',
             messages,
             max_tokens: this.maxCompletionTokens,
             reasoning: { enabled: true },
@@ -959,15 +980,17 @@ Respond with valid JSON only:
         }
 
         const data = await response.json();
-        this.timeStats.llmCalls++;
-        this.timeStats.llmTimeMs += Date.now() - start;
+        const elapsed = Date.now() - start;
+        this.timeStats.readerCalls++;
+        this.timeStats.readerTimeMs += elapsed;
+        this.timeStats.readerTimings.push(elapsed);
 
         const choice = data.choices[0];
         const readerSummaries = (choice.message.reasoning_details || [])
           .filter(r => r.type === 'reasoning.summary' && r.summary)
           .map(r => r.summary);
         if (readerSummaries.length > 0) {
-          this.logger.log(fmt(C.bold + C.blue, `  [Reader thinking]`) + fmt(C.dim, ` ${readerSummaries.join('\n    │ ')}`));
+          this.logger.log(fmt(C.bold + C.brown, `  [Reader thinking]`) + fmt(C.dim, ` ${readerSummaries.join('\n    │ ')}`));
         }
 
         const content = choice.message.content;
@@ -1017,7 +1040,7 @@ Respond with valid JSON only:
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'x-ai/grok-4.1-fast',
+            model: 'google/gemini-3-flash-preview',
             messages,
             tools: this.getToolDefinitions(),
             max_tokens: this.maxCompletionTokens,
@@ -1034,8 +1057,9 @@ Respond with valid JSON only:
 
         const data = await response.json();
         const elapsed = Date.now() - start;
-        this.timeStats.llmCalls++;
-        this.timeStats.llmTimeMs += elapsed;
+        this.timeStats.agentCalls++;
+        this.timeStats.agentTimeMs += elapsed;
+        this.timeStats.agentTimings.push(elapsed);
 
         const choice = data.choices[0];
         // Log reasoning summaries (encrypted blocks are intentionally opaque)
@@ -1139,8 +1163,10 @@ Respond with valid JSON only:
       });
 
       if (response.ok) {
+        const ssElapsed = Date.now() - callStart;
         this.timeStats.ssCalls++;
-        this.timeStats.ssTimeMs += Date.now() - callStart;
+        this.timeStats.ssTimeMs += ssElapsed;
+        this.timeStats.ssTimings.push(ssElapsed);
         const responseData = await response.json();
         this.ssCacheSet(cacheKey, responseData);
         return { success: true, data: responseData };
@@ -1151,6 +1177,9 @@ Respond with valid JSON only:
         const delay = 5000 * Math.pow(2, attempt - 1);
         this.logger.warn(fmt(C.yellow, `  [SS] 429 — retry ${attempt} in ${delay/1000}s`));
         await this.sleep(delay);
+      } else if (response.status === 404) {
+        this.logger.warn(fmt(C.yellow, `  [SS] 404 — resource not found, skipping`));
+        return { success: false, data: null, status: 404 };
       } else {
         throw new Error(`SS API Error: ${response.status}`);
       }

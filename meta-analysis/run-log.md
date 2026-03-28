@@ -14,6 +14,182 @@
 | 8 (primer + track management + state injection) | 2/13 | 1228s, 20 iter, 7 tracks — Active SLAM ✓, SemExp ✓; primer built; track proliferation; still no Levine/PRIOR |
 | 9 (iteration count in continuation prompt) | 3/13 | 1392s, 20 iter, 9 tracks — Active SLAM ✓, SemExp ✓, ViNT ✓; GNM/NoMaD/LeLaN/OmniVLA FOUND by reader but NOT added; new failure mode: selective under-adding |
 | 10 (citation count quality heuristic in criteria) | 3/13 | 1007s, ~20 iter, 4 tracks — Active SLAM ✓, SemExp ✓, Diff. Spatial Planning ✓; Edinburgh bio-robotics tangent; no Levine search; citation heuristic didn't help |
+| 11 (done gate hard error + time histogram) | 2/13 | 1050s, 20 iter, 6 tracks — Active SLAM ✓, SemExp ✓; done blocked 8×; no passive resistance; Levine searched but not found; reader = 78% of time |
+| 12 (Gemini Flash 3 swap) | 2/13 | 670s, 40 iter, 4 tracks — ViNT ✓, GNM ✓; **no done calls at all**; passive resistance fully gone; wrong exploration direction; Chaplot lineage abandoned; reader = 60% of time |
+| 13 (batching + maxIter=100) | **5/13** | 790s, 22 iter, 5 tracks — ViNT ✓, NoMaD ✓, LeLaN ✓, OmniVLA ✓, MBRA ✓; **best run ever**; batching tripled SS calls (48 vs 15); still stopped at 22 iter; Chaplot track still absent |
+
+---
+
+## Run 13 — 2026-03-26 (batching enabled + maxIterations=100)
+**Duration**: 790s | **Iterations**: 22 | **Tracks**: 5 | **Papers**: 34
+**Score**: 5/13 — ViNT ✓, NoMaD ✓, LeLaN ✓, OmniVLA ✓, MBRA ✓ — **best run ever**
+**Model**: `google/gemini-3-flash-preview`
+
+### New Features Being Tested
+- System prompt updated to encourage batching independent tool calls per response
+- `maxIterations` raised from 40 to 100
+
+### Timing Histogram
+```
+  Agent  LLM │█████               │ 191.7s 24% — 22 calls, avg 8.7s,  max 16.2s
+  Reader LLM │██████████████      │ 539.3s 68% — 21 calls, avg 25.7s, max 53.0s
+  SS API     │██                  │  80.0s 10% — 48 calls, avg 1.7s,  max 7.2s  (6 cache hits, 5 retries)
+  Other/wait │░░░░░░░░░░░░░░░░░░░░│ -21.0s -3% (timing bug: parallel SS calls overlap)
+```
+SS API calls tripled (48 vs 15 in run 12) from batching — same iteration count, 3x more exploration. Reader average dropped from 36.7s to 25.7s.
+
+### Batching Assessment — EXCELLENT
+The agent picked up batching immediately (iteration 1 had 4 parallel calls: search + get_citations + append_to_primer + create_track). By iteration 2 it was batching 5 tools simultaneously (get_author_papers for Shah AND Chaplot author lookup AND search AND create 2 tracks). This is a clear win — same iteration budget, far more coverage.
+
+### Done Gate
+Called `done` at iterations 6 and 18. Blocked both times (minIterations=20). Accepted at iteration 22. The maxIterations=100 change was irrelevant — the agent stopped at 22, only 2 past the minimum. Still wrapping up relatively quickly, but 5/13 beats all previous runs.
+
+### Path Taken
+**Iteration 1 (batched)**: Parallel search for "neural visual navigation VLM" + get_citations on seed + append_to_primer + create Track 0 (Neural Mapping). Reader on seed citations surfaced Hydra-Nav, POVNav, IGL-Nav, DynTopology. Reader on VLM search surfaced OmniVLA, CoNVOI, CATNAV, Lang2LTL.
+
+**Iteration 2 (batched)**: Parallel: get_author_papers for Dhruv Shah (author found, 8 papers selected — ViNT, NoMaD, OmniVLA, AsyncVLA, LeLaN, MBRA, CAST, Mobility VLA) + Chaplot author lookup (404 on wrong ID) + RT-2 search + citations on VL-TGS. Created Tracks 1 (Generalist Foundation), 2 (VLM Reasoning), 3 (Outdoor).
+
+**Iteration 3 (batched)**: Parallel: wrong Chaplot ID again + outdoor search + Hydra-Nav references (surfaced NavFoM, UniGoal, Nav-R1, OmniNav, BeliefMapNav). OmniVLA recommendations (surfaced AsyncVLA, OpenFrontier, SPAN-Nav, ImagiNav). Primer update.
+
+**Iteration 4**: Added 12 papers to tracks in one shot: Dynamic Topology + UniGoal → Track 0; ViNT + NoMaD + OmniVLA + AsyncVLA → Track 1; Hydra-Nav + Mobility VLA + Nav-R1 → Track 2; VL-TGS + CoNVOI + POVNav + AnyTraverse → Track 3.
+
+**Iterations 5-10**: Added more papers, created Track 4 (VPR/Seasonal). Explored VPR via "AnyLoc" search — found AnyLoc, SelaVPR, EffoVPR, DINO-Mix, UniLoc. ETH/Anymal searches returned 404s. Multiple outdoor terrain searches returned thin results (1-2 papers).
+
+**Iterations 11-22**: VPR track populated (AnyLoc, SelaVPR, EffoVPR, DINO-Mix, UniLoc, VPR survey, RGB-Thermal VPR). Added LeLaN, CAST, LogoNav (MBRA), PolaRiS, NavFoM to Tracks 1-2. Done blocked at 6 and 18. Final done accepted at 22.
+
+### What It Found
+- ✓ **ViNT** (Track 1) — via Dhruv Shah author lookup at iteration 2
+- ✓ **NoMaD** (Track 1) — via Dhruv Shah author lookup at iteration 2
+- ✓ **LeLaN** (Track 1) — via Dhruv Shah author lookup at iteration 2
+- ✓ **OmniVLA** (Track 1) — via Dhruv Shah + initial VLM search
+- ✓ **MBRA** (Track 3, as "Learning to Drive Anywhere") — via Dhruv Shah author lookup
+
+**Also found (not in expected, genuinely useful)**: AsyncVLA (2026), CAST (2025), Mobility VLA (2024), NavFoM (2025), PolaRiS (2025), AnyLoc (2023), CoNVOI (2024), POVNav (2025), UniGoal (2025)
+
+### What It Missed
+- **Entire Chaplot track** — no Active Neural SLAM, SemExp, GOAT. Agent tried 3 different Chaplot author IDs, all returned 404s or wrong people. Never fell back to searching by name.
+- **GNM** — found in run 12 via ViNT references but not in this run. Agent didn't fetch ViNT's references this time.
+- **PRIOR lab** — no search, no path.
+- **Track proliferation avoided** — 5 tracks this time, all coherent.
+
+### Key Insight: Author ID Problem
+The agent looked up Chaplot by ID 3 times (IDs: 1450090332, 3267503, 2328602 in other runs) and got 404s or wrong people every time. This is structural — Chaplot's SS author ID is unreliable or changed. The agent's fallback should be to search by name when author lookup fails, which it sometimes does (e.g., `search_papers("Devendra Singh Chaplot semantic navigation")`), but didn't try here. Once it gets an error it moves on.
+
+### Timing Bug
+"Other/wait = -21s" is a timing artifact. SS calls that fire in parallel overlap in wall-clock time, so the sum of (agent + reader + SS) can exceed total time. Not a real issue but the histogram looks weird. Should probably just show SS as "wall time" rather than summed.
+
+---
+
+## Run 12 — 2026-03-26 (Gemini Flash 3 model swap)
+**Duration**: 670.6s | **Iterations**: 40 | **Tracks**: 4 | **Papers**: 15
+**Score**: 2/13 — ViNT ✓, GNM ✓
+**Model**: `google/gemini-3-flash-preview` (both agent and reader, replaces grok-4.1-fast)
+
+### New Features Being Tested
+Model swap: `google/gemini-3-flash-preview` for both agent and reader. Hypothesis: Gemini is better at long-context coherence and less prone to passive resistance than grok-4.1-fast.
+
+### Timing Histogram
+```
+  Agent  LLM │███████             │ 240.8s  36% — 40 calls, avg 6.0s,  max 34.3s
+  Reader LLM │████████████        │ 403.9s  60% — 11 calls, avg 36.7s, max 84.2s
+  SS API     │█                   │  25.4s   4% — 15 calls, avg 1.7s,  max 6.2s  (5 cache hits, 0 retries)
+  Other/wait │░░░░░░░░░░░░░░░░░░░░│   0.5s   0%
+```
+Reader dropped from 78% to 60%, total time dropped from 1050s to 670s. Gemini made exactly one agent call per iteration (40 calls / 40 iterations). No SS 429 errors in this run.
+
+### Passive Resistance Assessment — SOLVED
+The agent called `done` exactly **zero times** across all 40 iterations. No coasting, no no-tool-call events. Every iteration produced a genuine tool call with a substantive rationale. This is a complete contrast to run 11 (done blocked 8×). The model swap to Gemini appears to have fully resolved the passive resistance problem.
+
+### Path Taken
+**Iterations 1-5**: Standard seed exploration. Iteration 1: seed citations → 6 papers surfaced including Hydra-Nav, POVNav, IGL-Nav. Iteration 5: seed references → Active Neural SLAM, Habitat, SPTM surfaced. **Critically, the agent never built a Chaplot/Neural SLAM track** — it treated the seed as context and immediately pivoted toward VLM/LLM navigation papers.
+
+**Iterations 6-10**: Searched for LM-Nav, VLM-Nav, CLIP-Nav, VLN-CE. Most searches returned zero results (quoted title queries failing against SS index). Iteration 7: Chaplot author lookup → 404 error on wrong ID, then recovered with correct ID → returned mostly LLM papers, not nav. Iteration 10: "VLM for instruction following" search → 9 relevant papers surfaced including NavGPT (333 cit), NavCoT, A2Nav, AutoRT, NaVid.
+
+**Iterations 11-17**: Agent identified NavGPT/NavCoT lineage and created Track 0 (VLM reasoning for nav). Added NavGPT (2023), NavGPT-2 (2024), NavCoT (2024), A2Nav (2023). Created Track 1 (VLA/Foundation Models), added AutoRT. Iteration 19: searched for ViNT/GNM/LM-Nav by name → found ViNT. Created Track 2 (Berkeley/Levine) at iteration 20.
+
+**Iterations 21-32**: Built out Berkeley/Levine track. Got ViNT references → surfaced GNM, LM-Nav, ViKiNG, RECON, PaLM-E, RT-1. Added ViNT, LM-Nav, GNM, ViKiNG to Track 2. Added PaLM-E, RT-1 to Track 1. Searched for IGL-Nav citations → only 1 result (OpenFly). Searched for ConceptFusion/CLIP-Fields/VLM-Maps repeatedly (6+ attempts) — all failed or returned 0-2 results.
+
+**Iterations 33-40**: Created Track 3 (VLMaps/semantic mapping) after finally finding VLMaps via "CLIP-based 3D maps" search. Added VLMaps, AVLMaps, VoxPoser. Added NaVid to Track 0. Searched for CoW/CLIP-on-Wheels/L3MVN ObjectNav lineage — found CoWs on Pasture (2022) and CLIP on Wheels (2022). Never added them to a track (run ended at iteration 40).
+
+### Tracks Created
+- **Track 0 — NavGPT/NavCoT** (5 papers): NavGPT (2023), NavGPT-2 (2024), NavCoT (2024), A2Nav (2023), NaVid (2024)
+- **Track 1 — VLA/Foundation Models** (3 papers): AutoRT (2024), PaLM-E (2023), RT-1 (2022)
+- **Track 2 — Berkeley/Levine** (4 papers): ViNT ✓ (2023), LM-Nav (2022), GNM ✓ (2022), ViKiNG (2022)
+- **Track 3 — VLMaps/Semantic Mapping** (3 papers): VLMaps (2022), AVLMaps (2023), VoxPoser (2023)
+
+### What It Found
+- ✓ **ViNT** (Track 2) — found via explicit title search
+- ✓ **GNM** (Track 2) — found via ViNT references
+- Also found: LM-Nav, ViKiNG, RECON (not in expected but in landscape) via ViNT references
+
+### What It Missed
+- **Entire Chaplot track** — the agent saw Active Neural SLAM, SemExp, Chaplot's work in the seed references (iteration 5) but never built a track for them. It moved on immediately.
+- **NoMaD, LeLaN, OmniVLA, MBRA** — never searched specifically for these.
+- **RECON found, not added** — surfaced by reader when fetching ViNT references, not added to any track.
+- **PRIOR lab** — no search.
+- **GOAT** — no search.
+
+### Root Cause Analysis
+Gemini solved the passive resistance problem but introduced a new failure mode: **wrong exploration direction**. The agent latched onto high-citation VLM/LLM navigation papers (NavGPT: 333 cit, PaLM-E: 2463 cit, RT-1: ~2000 cit) which are impressive numbers but diverge from the lab-lineage-from-seed approach. The model seems to strongly weight citation count in deciding exploration relevance, leading it toward the "famous VLM papers" cluster rather than following the seed's lineage.
+
+The Chaplot lineage was visible in iteration 5 (Active Neural SLAM, SemExp surfaced in references) but the agent treated these as historical context and didn't build a track. This suggests the agent's "importance heuristic" weights recent high-citation papers over older seed-lineage papers.
+
+**Key pattern**: Gemini explores *breadth-first* toward high-impact recent work; grok explored *depth-first* from the seed but then got lazy. We need depth-first (follow the seed), not breadth-first (find the most famous papers in the area).
+
+### What We Learned
+- **Gemini**: No passive resistance. Runs all iterations. Explores proactively. But explores the wrong things (generic VLM-for-nav vs. seed-specific lineages).
+- **Grok**: Gets lazy after ~5 iterations, needs constant prodding. When it does explore (run 9), it actually follows the seed lineage correctly and finds the right papers.
+- **Net result**: Model swap solved passive resistance at the cost of exploration direction. Different failure mode, same score (2/13).
+
+---
+
+## Run 11 — 2026-03-26 (done gate hard error + timing histogram)
+**Duration**: 1050s | **Iterations**: 20 | **Tracks**: 6 | **Papers**: 19
+**Score**: 2/13 — Active Neural SLAM ✓, SemExp ✓
+
+### New Features Being Tested
+- `done` tool returns a hard error when called before `minIterations`: "Too early to stop. You are on iteration X but must complete at least 20 iterations (N more to go)."
+- No-tool-calls path injects short error instead of verbose continuation prompt.
+- Timing histogram at end of run (Agent LLM / Reader LLM / SS API breakdown).
+
+### Timing Histogram (the big finding)
+```
+  Agent  LLM │████                │ 195.0s  19% — 21 calls, avg 9.3s,  max 27.8s
+  Reader LLM │████████████████    │ 823.7s  78% — 23 calls, avg 35.8s, max 70.9s
+  SS API     │█                   │  30.7s   3% — 26 calls, avg 1.2s,  max 6.2s  (18 cache, 2 retries)
+  Other/wait │░░░░░░░░░░░░░░░░░░░░│   0.7s   0%
+```
+Reader is 78% of total runtime. Average reader call is 35.8s — because grok-4.1-fast with reasoning enabled on each call is slow. SS API is nearly free (3%). This is the primary optimization target.
+
+### Done Gate Assessment
+The hard error worked extremely well. The agent called `done` at iterations 6, 8, 11, 14, 16, 17, 18, 19 — blocked every time. Each time it received the error, it genuinely continued searching rather than going passive. Only 3 no-tool-calls (iterations 9, 12, 15), quickly redirected by the short error injection. **Passive resistance is solved.** The agent now actually explores through all 20 iterations.
+
+### Path Taken
+Standard seed citations/references/author lookups (Chaplot, Abhinav Gupta, Saurabh Gupta). Iterations 1-4 established CMU Track 0 and discovered 3DGS image-goal nav (Track 1), Hang Yin scene graph nav (Track 2), Cao feudal nav (Track 3).
+
+Iterations 5-8: Deeper on scene graph citations (SG-Nav → massive 2026 cluster of scene graph zero-shot ObjectNav papers). Discovered Sivakumar ag robotics (Track 4) and Pushp mapless outdoor nav (Track 5).
+
+Iterations 9-16: Done blocked at 8, 11, 14, 16. Agent searched "Berkeley lab neural visual embodied nav recent", "Stanford lab neural visual robotic nav", "NVIDIA/Isaac lab", "quadruped/legged SOTA real-world", "DeepMind/Google legged nav", "Boston Dynamics Spot". **All returned zero useful results.** The agent explicitly tried to find Berkeley/Levine but search queries were too generic — "Berkeley lab neural visual nav" doesn't surface Shah's papers.
+
+Iterations 17-20: Backward references from seed (surfaced 2016-2019 precursor papers — DQN nav, Gibson, Habitat, SPTM). Confirmed circling. Agent accepted final done at iteration 20.
+
+### What It Found
+- ✓ **CMU Track 0** (6 papers): Active Neural SLAM ✓, SemExp ✓, Plan-Seq-Learn, SEAL, Semantic Visual Nav by Watching YouTube, Under-Canopy Ag
+- ✓ **3DGS Track 1** (4 papers): IGL-Nav, YOPO-Nav, SplatSearch, Navigating the Wild
+- ✓ **Hang Yin Scene Graph Track 2** (3 papers): SG-Nav, UniGoal, GC-VLN — new lab, LLM/scene-graph zero-shot nav
+- ✓ **Cao Track 3** (1 paper): Feudal Networks (thin)
+- ✓ **Sivakumar Ag Track 4** (3 papers): CropFollow++, WayFAST, WayFASTER
+- ✓ **Pushp Mapless Track 5** (2 papers): POVNav, Visual-Geometry GP Nav
+
+### What It Missed
+- **Entire Levine track** — agent explicitly searched "Berkeley lab neural nav" multiple times but got no Shah papers back. The SS search index doesn't reliably surface lab-based keyword searches. Author-specific searches ("Dhruv Shah", "ViNT foundation model navigation") would work; lab-name searches don't.
+- **GOAT** — still absent from Chaplot author results.
+- **PRIOR lab** — no PRIOR/Allen Institute search attempted.
+
+### Root Cause Analysis
+The agent's done-blocking is no longer the bottleneck. The remaining miss is **search query specificity**: the agent knows Berkeley is relevant, tries to find it via "Berkeley lab neural nav" style queries, and fails. It has never encountered a Shah paper to anchor a more specific search. The primer could prime this if it contained the Berkeley B AIR entry from run 9 — but that entry was generated because run 9 happened to find a Shah paper first. It's still chicken-and-egg.
+
+The structural fix: seed the primer (or system prompt) with "there is a well-known Berkeley/B AIR lab (Shah, Levine) working on foundation models for visual navigation — look for them" — but this is domain-specific priming, which conflicts with the general-purpose design constraint.
 
 ---
 

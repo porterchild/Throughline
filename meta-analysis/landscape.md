@@ -23,14 +23,21 @@
 ---
 
 ### Berkeley Levine / Shah Lab
-**Key authors**: Sergey Levine, Dhruv Shah, Ajay Sridhar, Noriaki Hirose, Catherine Glossop
-**Methodology**: Foundation models for navigation, image-goal conditioning, large-scale pretraining on robot/YouTube videos; diffusion policies; VLA omni-modal conditioning
+**Key authors**: Sergey Levine, Dhruv Shah, Ajay Sridhar, Noriaki Hirose, Catherine Glossop, Arjun Bhorkar, Kyle Stachowicz, Kevin Black
+**Methodology**: Foundation models for navigation, image-goal conditioning, large-scale pretraining on robot/YouTube videos; diffusion policies; VLA omni-modal conditioning; offline RL for real-world outdoor nav
 **Papers**:
+- ViNG: Learning Open-World Navigation with Visual Goals (2020) — foundational visual goal nav with topo graphs, open-world
+- RECON: Rapid Exploration for Open-World Navigation with Latent Goal Models (2021) — latent goal models for open-world exploration
+- Hybrid Imitative Planning with Geometric and Predictive Costs in Off-Road Environments (2021) — neural traversability for off-road
+- Offline Reinforcement Learning for Visual Navigation (2022) — offline RL for real-world visual nav (off-road), no online trials
 - LM-Nav: Robotic Navigation with Large Pre-Trained Models of Language, Vision, and Action (2022)
-- GNM: Goal-conditioned Neural Navigation (2022)
+- GNM: A General Navigation Model to Drive Any Robot (2022) — cross-embodiment generalization via image-goal conditioning
+- ViKiNG: Vision-Based Kilometer-Scale Navigation with Geographic Hints (2022) — km-scale outdoor visual nav
+- ExAug: Robot-Conditioned Navigation Policies via Geometric Experience Augmentation (2022) — cross-robot generalization via augmentation
 - ViNT: A Foundation Model for Visual Navigation (2023)
 - Navigation with Large Language Models: Semantic Guesswork as a Heuristic (2023)
 - NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration (2023)
+- SELFI: Autonomous Self-Improvement with Reinforcement Learning for Social Navigation (2024)
 - LeLaN: Learning A Language-Conditioned Navigation Policy from In-the-Wild Videos (2024)
 - Mobility VLA: Multimodal Instruction Navigation with Long-Context VLMs and Topological Graphs (2024)
 - OmniVLA: An Omni-Modal Vision-Language-Action Model for Robot Navigation (2025)
@@ -173,6 +180,9 @@
 - Is Mapping Necessary for Realistic PointGoal Navigation? (2022) — 94% success RGB-D, sim2real LoCoBot
 - PIRLNav: Pretraining with Imitation and RL Finetuning for ObjectNav (2023)
 - OVRL-V2: Simple State-of-Art Baseline for ImageNav and ObjectNav (2023) — scaling laws, task-agnostic
+- Habitat-Web: Learning Embodied Object-Search Strategies from Human Demonstrations at Scale (2022) — large-scale human demo IL for ObjectNav
+- VLFM: Vision-Language Frontier Maps for Zero-Shot Semantic Navigation (2023) — CLIP frontier maps for zero-shot ObjectNav
+- ETPNav: Evolving Topological Planning for Vision-Language Navigation in Continuous Environments (2023) — online topo maps + transformer planner; SOTA R2R-CE
 
 ---
 
@@ -185,16 +195,69 @@
 - CropNav: A Framework for Autonomous Navigation in Real Farms (2023)
 - Demonstrating CropFollow++: Robust Under-Canopy Navigation with Keypoints (2024)
 - RowDetr: End-to-End Crop Row Detection Using Polynomials (2024)
+- AdaCropFollow: Self-Supervised Online Adaptation for Visual Under-Canopy Navigation (2024)
+- MetaCropFollow: Few-Shot Adaptation with Meta-Learning for Under-Canopy Navigation (2024)
+- WayFASTER: Self-Supervised Traversability Prediction for Increased Navigation Awareness (2024)
 
 ---
 
 ### Habitat Benchmark Cluster (Meta AI / AllenAI)
-**Key authors**: Dhruv Batra, Manolis Savva, Arjun Majumdar, Aniruddha Kembhavi
-**Methodology**: ObjectNav/ImageNav benchmark papers; zero-shot generalization via CLIP embeddings, data augmentation, large-scale training; Habitat/Gibson/MP3D sim
+**Key authors**: Dhruv Batra, Manolis Savva, Arjun Majumdar, Aniruddha Kembhavi, Ram Ramrakhya
+**Methodology**: ObjectNav/ImageNav benchmark papers; zero-shot generalization via CLIP embeddings, data augmentation, large-scale training; Habitat/Gibson/MP3D/HM3D sim; open-vocabulary object-goal nav
 **Papers**:
 - THDA: Treasure Hunt Data Augmentation for Semantic Navigation (2021) — Meta AI, addresses ObjectNav overfitting
 - Simple but Effective: CLIP Embeddings for Embodied AI (2021) — AllenAI, zero-shot ObjectNav
 - ZSON: Zero-Shot Object-Goal Navigation using Multimodal Goal Embeddings (2022) — Meta AI
+- HM3D-OVON: A Dataset and Benchmark for Open-Vocabulary Object Goal Navigation (2024) — Meta AI, OVON benchmark on HM3D; cited by FiLM-Nav, Hydra-Nav
+- FiLM-Nav: Efficient and Generalizable Navigation via VLM Fine-tuning (2025) — VLM fine-tuned on OVON benchmark
+- Hydra-Nav: Object Navigation via Adaptive Dual-Process Reasoning (2026) — dual-process (fast/slow) reasoning for ObjectNav
+
+---
+
+### NavGPT / VLN Reasoning Cluster (UQ / Qi Wu Lab)
+**Key authors**: Gengze Zhou, Yicong Hong, Qi Wu (University of Queensland)
+**Methodology**: LLM and LVLM as high-level reasoners for Vision-Language Navigation (VLN) sim benchmarks (R2R, RxR, REVERIE); chain-of-thought navigation planning; zero-shot and fine-tuned variants
+**Papers**:
+- NavGPT: Explicit Reasoning in Vision-and-Language Navigation with Large Language Models (2023) — 333 cit; LLM-driven zero-shot VLN via sequential reasoning
+- NavGPT-2: Unleashing Navigational Reasoning Capability for Large Vision-Language Models (2024) — LVLM vision-aligned successor
+- NavCoT: Boosting LLM-Based VLN via Learning Disentangled Reasoning (2024) — Chain-of-Thought reasoning, SOTA on R2R/RxR
+- A2Nav: Action-Aware Zero-Shot Robot Navigation via Foundation Models (2023) — LLM instruction decomposition to sub-tasks; R2R-Habitat + RxR-Habitat
+- NaVid: Video-based VLM Plans the Next Step for VLN (2024) — 204 cit; mapless monocular video VLM; sim-to-real transfer
+
+---
+
+### Daeun Song / Jing Liang / Xuesu Xiao Lab (UT Austin / UMD)
+**Key authors**: Daeun Song, Jing Liang, Xuesu Xiao, Dinesh Manocha, Amirreza Payandeh
+**Methodology**: Mapless outdoor navigation via VLM trajectory generation/selection; multi-modal scene understanding for long-range outdoor; socially-aware real-time VLM navigation
+**Papers**:
+- VL-TGS: Trajectory Generation and Selection Using VLMs in Mapless Outdoor Environments (2024) — 26 cit; VLM selects human-like trajectories on crosswalks/curbs
+- MOSU: Autonomous Long-range Robot Navigation with Multi-modal Scene Understanding (2025) — VLM outdoor long-range
+- Narrate2Nav: Real-Time Visual Navigation with Implicit Language Reasoning (2025) — real-time implicit language reasoning for human-centric environments
+- AutoSpatial: Visual-Language Reasoning for Social Robot Navigation (2025) — spatial reasoning limits of VLMs in navigation
+
+---
+
+### AnyLoc / Visual Place Recognition Cluster
+**Key authors**: Nikhil Varma Keetha, Sebastian Scherer (CMU); Avneesh Mishra, Krishna Murthy Jatavallabhula; Feng Lu, Gaoshuang Huang (various)
+**Methodology**: Foundation-model-based universal visual place recognition; DINOv2 backbones for zero-shot outdoor robustness (seasonal, day/night, weather); cross-modal VPR
+**Papers**:
+- AnyLoc: Towards Universal Visual Place Recognition (2023) — 242 cit; DINO features for zero-shot outdoor VPR
+- Towards Seamless Adaptation of Pre-trained Models for VPR / SelaVPR (2024) — 78 cit; lightweight adapters, MSLS benchmark leader
+- EffoVPR: Effective Foundation Model Utilization for VPR (2024) — 25 cit; seasonal + day/night zero-shot robustness
+- DINO-Mix: Enhancing VPR with Foundation Model and Feature Mixing (2024) — Nordland seasonal benchmark
+- UniLoc: Towards Universal Place Recognition Using Any Single Modality (2024) — natural language + point clouds + vision
+- RGB-Thermal VPR via Vision Foundation Model (2025) — night/smoke/fog robustness via multi-modal fusion
+- General Place Recognition Survey: Toward Real-World Autonomy (2024) — 31 cit survey; lineage from classical PR to foundation models
+
+---
+
+### Oier Mees / VLMaps Lab (Freiburg → Berkeley)
+**Key authors**: Oier Mees, Chen Huang, Andy Zeng, Wolfram Burgard
+**Methodology**: CLIP-grounded open-vocabulary 3D semantic maps for language-driven robot navigation; implicit neural field extensions; real robots (Spot, wheeled)
+**Papers**:
+- Visual Language Maps for Robot Navigation / VLMaps (2022) — 500+ cit; CLIP features fused into 3D voxel grid for open-vocab nav
+- Audio Visual Language Maps for Robot Navigation / AVLMaps (2023) — extends VLMaps with audio for multi-sensory goal disambiguation
+- LAMP: Implicit Language Map for Robot Navigation (2025) — implicit neural field replaces explicit voxel grid for scalable outdoor maps
 
 ---
 
@@ -219,6 +282,37 @@
 
 ---
 
+### Edinburgh Webb/Mangan Bio-Robotics Lab
+**Key authors**: Barbara Webb, Antoine Wystrach, Stanley Heinze, Paul Graham (Edinburgh; also Mangan)
+**Methodology**: Insect mushroom body (MB) spiking neural network models for visual route navigation; event cameras; real outdoor robots (Q-car) navigating through dense vegetation; neuromorphic/low-power approach
+**Papers**:
+- Spatio-temporal Memory for Navigation in a Mushroom Body Model (2020) — foundational MB model for spatial memory in nav
+- Neuromorphic Sequence Learning with an Event Camera on Routes Through Vegetation (2023) — outdoor real-robot event-cam + MB for vegetation nav
+- Investigating Visual Navigation Using Spiking Neural Network Models of the Insect Mushroom Bodies (2024) — embodied real-robot validation, complex outdoor; low error
+
+---
+
+### Hang Yin Lab (Scene Graph / LLM Zero-Shot Nav)
+**Key authors**: Hang Yin, Wenxuan Guo (and collaborators)
+**Methodology**: Online 3D scene graph construction prompted to LLMs for zero-shot ObjectNav; universal goal-oriented nav across task types; graph constraint-based VLN; 3DGS localization
+**Papers**:
+- SG-Nav: Online 3D Scene Graph Prompting for LLM-based Zero-shot Object Navigation (2024) — 105 citations; scene graph → LLM for zero-shot ObjectNav
+- IGL-Nav: Incremental 3DGS Localization for Image-goal Navigation (2025) — incremental 3D Gaussian localization
+- UniGoal: Towards Universal Zero-shot Goal-oriented Navigation (2025) — unified framework across ObjectNav/ImageNav/VLN
+- GC-VLN: Instruction as Graph Constraints for Training-free Vision-and-Language Navigation (2025) — graph constraints for training-free VLN
+
+---
+
+### Pushp Lab (Mapless Outdoor Visual Navigation)
+**Key authors**: Durgakant Pushp (and collaborators)
+**Methodology**: Pareto-optimal mapless monocular semantic image-space planning; lightweight real-world deployment in unstructured outdoor (forests, snow); no explicit map or SLAM
+**Papers**:
+- POVNav: A Pareto-Optimal Mapless Visual Navigator (2023)
+- Navigating the Wild: Pareto-Optimal Visual Decision-Making in Image Space (2025)
+- Visual-Geometry GP-based Navigable Space for Autonomous Navigation (2024)
+
+---
+
 ### Miscellaneous / One-off Papers
 - End-to-End Learning for Visual Navigation of Forest Environments (2023) — Chaoyue Niu, Klaus-Peter Zauner, Danesh Tarapore
 - WildOS: Open-Vocabulary Object Search in the Wild (2026) — Hardik Shah et al.
@@ -228,6 +322,11 @@
 - Navigating the Wild: Pareto-Optimal Visual Decision-Making in Image Space (2025) — Durgakant Pushp et al.
 - ABot-N0: VLA Foundation Model for Versatile Embodied Navigation (2026) — Zedong Chu et al.
 - Semantic Visual Navigation by Watching YouTube Videos (2020) — Matthew Chang, Saurabh Gupta
+- VERN: Vegetation-Aware Robot Navigation in Dense Unstructured Outdoor Environments (2023) — legged/wheeled outdoor; dense vegetation/forest terrain
+- Traversability-Aware Legged Navigation by Learning From Real-World Visual Data (2024) — real-world visual training for legged robot traversability; no simulation
+- Does Matter: Visual Navigation via Denoising Diffusion Bridge Models (2025) — diffusion models for multi-modal trajectory generation in nav
+- UAV-Flow Colosseo: A Real-World Benchmark for Flying-on-a-Word UAV Imitation Learning (2025) — aerial drone imitation learning, VLM/GS policies, real-world benchmark
+- Mobile Robot Navigation Using Hand-Drawn Maps: A Vision Language Model Approach (2025) — VLM interpretation of hand-drawn maps for indoor robot nav; Tan/Wang lab
 
 ---
 
@@ -243,6 +342,11 @@
 | Foundation models / VLM | Guan, VLA cluster, Berkeley |
 | Real-world outdoor | Yang, Cao, Garg, Niu (forest) |
 | Habitat benchmark | CMU, Oh, Habitat platform |
+| Semantic CLIP maps | Oier Mees (VLMaps), Guan (LOC-ZSON) |
+| VLN simulation benchmarks | NavGPT/NavCoT (UQ), NaVid, A2Nav |
+| Visual place recognition | AnyLoc, SelaVPR, EffoVPR, DINO-Mix |
+| Outdoor mapless VLM nav | Daeun Song/Xiao (VL-TGS, MOSU), Pushp (POVNav) |
+| VLA foundation models | Berkeley (ViNT→OmniVLA→AsyncVLA), Google (RT-1→AutoRT→PaLM-E) |
 
 ---
 
