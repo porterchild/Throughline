@@ -47,13 +47,13 @@
 
 ---
 
-### PRIOR Lab (Allen Institute)
-**Key authors**: (Allen Institute)
-**Methodology**: Massive-scale RL training, no explicit maps, pure policy learning ("Bitter Lesson" approach)
+### PRIOR Lab (Allen Institute for AI)
+**Key authors**: Kuo-Hao Zeng, Kiana Ehsani, Rose Hendrix, Ainaz Eftekhar, Luca Weihs, Jordi Salvador, Zichen Zhang, Ali Farhadi, Aniruddha Kembhavi, Roozbeh Mottaghi
+**Methodology**: Massive-scale RL training, no explicit maps, pure policy learning ("Bitter Lesson" approach); Habitat sim at scale (150k+ houses); cross-embodiment sim-to-real
 **Papers**:
-- PoliFormer (2024)
-- FLaRe (2024)
-- RING: Robotic Indoor Navigation Generalist (2025)
+- PoliFormer: Scaling On-Policy RL with Transformers Results in Masterful Navigators (2024) — 63 cit; transformer-based RL policy trained at scale, object-goal nav, real-world sim-to-real
+- FLaRe: Achieving Masterful and Adaptive Robot Policies with Large-Scale RL Fine-Tuning (2024) — 53 cit; mobile manipulation IL+RL fine-tuning pipeline (SPOC → FLaRe)
+- The One RING: a Robotic Indoor Navigation Generalist (2024/2025) — 18 cit; trained on 1M+ embodiments, embodiment-agnostic visual object-goal nav, strong cross-embodiment sim-to-real
 
 ---
 
@@ -327,6 +327,9 @@
 - Does Matter: Visual Navigation via Denoising Diffusion Bridge Models (2025) — diffusion models for multi-modal trajectory generation in nav
 - UAV-Flow Colosseo: A Real-World Benchmark for Flying-on-a-Word UAV Imitation Learning (2025) — aerial drone imitation learning, VLM/GS policies, real-world benchmark
 - Mobile Robot Navigation Using Hand-Drawn Maps: A Vision Language Model Approach (2025) — VLM interpretation of hand-drawn maps for indoor robot nav; Tan/Wang lab
+- AnyTraverse: An off-road traversability framework with VLM and human operator in the loop (2025) — outdoor off-road traversability; VLM + human-in-the-loop for ambiguous terrain; real field deployment
+- Enhanced Autonomous Navigation on the Perseverance Mars Rover (2026) — real-world field robotics; Mars terrain; SOTA autonomous nav on Perseverance
+- GR00T N1: An Open Foundation Model for Generalist Humanoid Robots (2025) — NVIDIA; 596 cit; generalist cross-embodiment foundation model; relevant to cross-embodiment nav scaling
 
 ---
 
@@ -347,6 +350,9 @@
 | Visual place recognition | AnyLoc, SelaVPR, EffoVPR, DINO-Mix |
 | Outdoor mapless VLM nav | Daeun Song/Xiao (VL-TGS, MOSU), Pushp (POVNav) |
 | VLA foundation models | Berkeley (ViNT→OmniVLA→AsyncVLA), Google (RT-1→AutoRT→PaLM-E) |
+| Cross-embodiment generalization | PRIOR Lab (RING), NVIDIA (GR00T N1), CE-Nav, CeRLP, LAP, RDT2 |
+| 3DGS for navigation | SplatSearch, IGL-Nav, HAMMER, DynaGSLAM, LagMemo, YOPO-Nav, 3DGSNav |
+| Outdoor traversability + VLM | AnyTraverse, VLM-GroNav, CoNVOI, Behav, EZREAL, CATNAV |
 
 ---
 
@@ -367,8 +373,10 @@ Berkeley Levine group
        - Via bridging paper: a 2024+ survey citing both traditions
 
 PRIOR Lab
-  └─ Disconnected from seed citation graph
-     Bridge options:
-       - Specific search: "PoliFormer navigation", "RING navigation generalist"
-       - Author search: Allen Institute navigation team
+  └─ Reachable via Habitat/ObjectNav authorship overlap
+     Confirmed bridge (run 17): author lookup on Habitat-adjacent author (id 1746610)
+     → reader surfaced PoliFormer → agent traced Kuo-Hao Zeng → RING co-surfaced
+     Direct search options also viable:
+       - Author lookup: Kuo-Hao Zeng, Kiana Ehsani, Rose Hendrix (AllenAI)
+       - Paper search: "PoliFormer navigation", "RING robotic indoor navigation generalist"
 ```

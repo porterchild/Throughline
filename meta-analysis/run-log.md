@@ -17,6 +17,146 @@
 | 11 (done gate hard error + time histogram) | 2/13 | 1050s, 20 iter, 6 tracks — Active SLAM ✓, SemExp ✓; done blocked 8×; no passive resistance; Levine searched but not found; reader = 78% of time |
 | 12 (Gemini Flash 3 swap) | 2/13 | 670s, 40 iter, 4 tracks — ViNT ✓, GNM ✓; **no done calls at all**; passive resistance fully gone; wrong exploration direction; Chaplot lineage abandoned; reader = 60% of time |
 | 13 (batching + maxIter=100) | **5/13** | 790s, 22 iter, 5 tracks — ViNT ✓, NoMaD ✓, LeLaN ✓, OmniVLA ✓, MBRA ✓; **best run ever**; batching tripled SS calls (48 vs 15); still stopped at 22 iter; Chaplot track still absent |
+| 14 (search_authors tool + minIter=40) | **5/13** | 2458s, 40 iter, 10 tracks — ViNT ✓, NoMaD ✓, LeLaN ✓, OmniVLA ✓, MBRA ✓; same score as run 13; search_authors adopted immediately; Chaplot SS data quality issue confirmed; diminishing returns after iter ~30 |
+| 15–16 (bug fix iterations) | n/a | Interrupted early by Gemini thoughtSignature 400 error and 502 gateway errors; reader output token explosion discovered (reader was echoing full paper data per call instead of id+note) |
+| **17** (reader fix + grok reader + thoughtSignature fix) | **6/13** | 2774.6s, 40 iter, 7 tracks — GNM ✓, ViNT ✓, NoMaD ✓, OmniVLA ✓, PoliFormer ✓, RING ✓; **new best**; PRIOR lab reached for first time; LeLaN+MBRA reader-surfaced but not track-added |
+
+---
+
+## Run 17 — 2026-04-01 (reader fix + grok reader + thoughtSignature fix)
+**Duration**: 2774.6s | **Iterations**: ~40 | **Tracks**: 7 | **Papers**: 81
+**Score**: 6/13 — GNM ✓, ViNT ✓, NoMaD ✓, OmniVLA ✓, PoliFormer ✓, RING ✓ — **new best**
+**Model**: Agent: `google/gemini-3-flash-preview`, Reader: `x-ai/grok-4.1-fast`
+
+### New Features Being Tested
+- **Reader model**: switched from Gemini to `x-ai/grok-4.1-fast` with reasoning
+- **Reader output schema**: reduced to `id` + `note` only (was echoing full paper data — ~17k tokens/call); expected ~90% reduction in reader output tokens
+- **thoughtSignature fix**: Gemini 3 Flash Preview requires `thoughtSignature` field echoed back on every tool response message; missing it caused 400 "Corrupted thought signature" on tool calls; now preserved on both normal and error tool response paths
+- **5xx retry delay**: increased from 3s to 15s for server errors
+- **Token tracking**: agent and reader in/out/cached tokens now tracked in timing histogram
+- **Post-run chat**: now runs via `callLLMWithTools` loop, giving agent full tool access for follow-up analysis
+
+### Timing / Token Stats
+```
+Agent  LLM: 6,776,124 in (3,822,543 cached = 56%), 44,388 out
+Reader LLM: 554,888 in (47,689 cached = 8.6%), 152,044 out
+```
+Reader output tokens (152k across ~40 iterations) are high but correct — post-fix, each call outputs only ids+notes. Pre-fix this would have been ~1.7M output tokens. Agent cache rate (56%) is solid; reader cache (8.6%) is low since reader prompt varies with each batch.
+
+### Tracks Produced
+| # | Theme | Papers |
+|---|-------|--------|
+| 0 | VLA Foundation Models (GNM→ViNT→NoMaD→OmniVLA lineage) | 22 |
+| 1 | Outdoor context-aware VLM navigation | 9 |
+| 2 | Agentic reasoning VLN (PoliFormer) | 14 |
+| 3 | 3DGS scene representation + nav | 14 |
+| 4 | Cross-embodiment generalization (RING) | 9 |
+| 5 | Field robotics / high-performance outdoor | 4 |
+| 6 | Navigation benchmarks | 5 |
+
+### What It Found
+- ✓ **GNM** — Track 0, via Dhruv Shah author lookup (id 145718344), surfaced early (~iter 4)
+- ✓ **ViNT** — Track 0, same Shah author lookup
+- ✓ **NoMaD** — Track 0, same Shah author lookup
+- ✓ **OmniVLA** — Track 0, same Shah author lookup / VLA cluster
+- ✓ **PoliFormer** — Track 2, via author papers lookup (id 1746610, Habitat-related author) → reader selected PoliFormer → agent added; then traced Kuo-Hao Zeng (PoliFormer lead author)
+- ✓ **RING** — Track 4, surfaced alongside PoliFormer from Kuo-Hao Zeng's papers; added as cross-embodiment generalist
+
+### PRIOR Lab First Contact
+This is the first run to find PRIOR Lab papers. The path was indirect:
+1. Agent queried author 1746610 (Habitat/ObjectNav related) → reader surfaced PoliFormer (63 cit.)
+2. Agent added PoliFormer to "agentic reasoning" track and traced Kuo-Hao Zeng as lead author
+3. Zeng's papers (or citations from PoliFormer) brought up RING alongside PoliFormer in the next reader batch
+4. Reader included both PoliFormer and RING (the latter labeled "embodiment-agnostic visual object-goal navigation policy")
+5. FLaRe appeared in the same batch as **borderline** (reader note: "mobile manipulation implies nav, adaptive policies") — not added
+
+FLaRe missed because: reader classified it as borderline (mobile manipulation focus vs pure nav), agent didn't pick it up. The PRIOR lab connection was found via ObjectNav/Habitat authorship overlap, not a direct AllenAI search.
+
+### What It Missed
+- **LeLaN** — Reader selected it (line 265 of run log: "language-conditioned nav from in-the-wild videos, real-world trials") but agent did not add it to any track. Same selective under-adding failure mode as run 9.
+- **MBRA** — Reader selected it (line 263: "Model-based reannotation for long-horizon visual nav indoor/outdoor") but agent did not add it to any track.
+- **Active Neural SLAM, SemExp, GOAT** — Chaplot SS author API still returns only LLM papers; agent attempted author 2328602 again; same failure. Title search still not tried.
+- **FLaRe** — Reader borderlined; not added.
+
+### Regressions vs Run 14
+Run 14 found LeLaN and MBRA (added to Track 6). This run found them via reader but failed to add them. Net: +GNM +PoliFormer +RING −LeLaN −MBRA. Overall score improved 5→6.
+
+### New Discoveries (not in expected output)
+- **3DGS cluster**: SplatSearch, IGL-Nav, HAMMER, DynaGSLAM, LagMemo, AnyLoc, YOPO-Nav — 14 papers tracing Gaussian Splatting as a nav representation
+- **Cross-embodiment cluster**: GR00T N1 (NVIDIA, 596 cit.), CE-Nav, CeRLP, LAP, RDT2, ABot-M0 — cross-embodiment generalization as emerging theme
+- **Outdoor nav cluster**: CoNVOI, Behav, VLM-GroNav, AnyTraverse, GeNIE, EZREAL, WildOS, Sem-NaVAE, CATNAV
+- **Field robotics**: Perseverance Mars Rover autonomous nav (2026), Off-Road Nav via Implicit Neural Representation, DuLoc
+- **Benchmarks**: HM3D-OVON, NaviTrace, TOPO-Bench, Can VFMs Navigate (real-world ViNT/NoMaD/GNM failure analysis)
+- **AsyncVLA** (Berkeley/Shah lab, 2026) — naturally found as continuation of the Shah lineage
+
+### Assessment
+The reader schema fix was the right call. Grok-as-reader surfaced PoliFormer and RING with good rationales, enabling the first PRIOR lab contact. The 3DGS and cross-embodiment clusters are genuinely interesting new territory. Selective under-adding (LeLaN, MBRA found but not added) remains a persistent failure mode — the agent prefers to open new tracks over adding to existing ones.
+
+---
+
+## Run 14 — 2026-03-28 (search_authors tool + minIterations=40)
+**Duration**: 2458.3s | **Iterations**: 40 | **Tracks**: 10 | **Papers**: 158
+**Score**: 5/13 — ViNT ✓, NoMaD ✓, LeLaN ✓, OmniVLA ✓, MBRA ✓ (same as run 13)
+**Model**: `google/gemini-3-flash-preview`
+
+### New Features Being Tested
+- `search_authors` tool added (dedicated `/author/search` endpoint)
+- `get_author_papers` now requires `author_id` (no name fallback)
+- `minIterations` raised from 20 to 40
+- Improved tool descriptions with usage scenarios
+- Tools encourage multi-angle querying for non-deterministic searches
+
+### Timing Histogram
+```
+  Agent  LLM │████                │  459.8s 19% — 40 calls, avg 11.5s,  max 20.6s
+  Reader LLM │███████████████     │ 1856.1s 76% — 100 calls, avg 18.6s, max 41.9s
+  SS API     │█                   │  136.8s  6% — 144 calls, avg 0.95s, max 6.8s  (23 cache hits, 4 retries)
+  Other/wait │░░░░░░░░░░░░░░░░░░░░│    5.6s  0%
+```
+Reader climbed from 68% (run 13) to 76% — 100 reader calls vs 22 in run 13, proportional to the 3× more SS calls per iteration from batching. Agent avg call time grew from 8.7s to 11.5s (longer context at 40 iterations). SS API calls: 144 vs 48 in run 13 (same iteration count but more calls per iteration due to batching + more iterations).
+
+### Path Taken — Key Moments
+**Iteration 1 (batched)**: Agent immediately used `search_authors("Devendra Singh Chaplot")` and `search_authors("Saurabh Gupta")` — the new tool was adopted in the first response. Got Chaplot ID 2328602 (papers:41, h-index:24).
+
+**Iteration 2 (batched)**: `get_author_papers(2328602)` → only **4 papers returned** from the API: Plan-Seq-Learn (nav-relevant), AUTOSUMM, Mixtral, Mistral 7B. The reader correctly kept Plan-Seq-Learn and dropped the LLM papers. Active Neural SLAM and SemExp are missing. Also fetched Oier Mees (VLMaps) and Saurabh Gupta (name collision — returns plants/mycobacteria papers). Added OmniVLA, AsyncVLA, LeLaN early via Mees author lookup.
+
+**Iteration 3**: OmniVLA already added. ViNT references fetched. NoMaD, LeLaN selected by reader.
+
+**Iteration 7-8**: ViNT and NoMaD added to Track 2.
+
+**Iterations 9-28**: Broad exploration. Agent used `search_authors` ~17 times across the run (Hang Yin, Wenxuan Guo, Karol Hausman, Pete Florence, Xuesu Xiao, Jeannette Bohg, Yulun Du, Dhruv Shah, Alex Kendall, Animesh Garg, Linxi Fan, Akshara Rai, Lerrel Pinto, Abhinav Gupta, and others). Created 10 thematic tracks covering world models, social navigation, zero-shot exploration, benchmarks, CoT reasoning, etc.
+
+**Iterations 29-40**: Added LeLaN and MBRA to Track 6 (Internet-Scale Video). Diminishing returns — iterations 30-40 added no more target papers. Done blocked at 6, 17, 23, 34, 37, 39. Accepted at 40.
+
+### What It Found
+- ✓ **OmniVLA** — Iteration 3, Track 2, via Oier Mees author lookup / initial VLM references
+- ✓ **ViNT** — Iteration 8, Track 2, via ViNT references
+- ✓ **NoMaD** — Iteration 8, Track 2, via ViNT references
+- ✓ **LeLaN** — Iteration 29, Track 6 (Learning from Observation / Internet Video)
+- ✓ **MBRA** — Iteration 29, Track 6 (as "Learning to Drive Anywhere With Model-Based Reannotation")
+
+### What It Missed
+- **Active Neural SLAM, SemExp, GOAT** — Chaplot author lookup (ID 2328602) returned only 4 papers, all recent LLM/NLP work. His 2020 navigation papers (Active Neural SLAM, Neural Topo SLAM, SemExp) do not appear in the `/author/{id}/papers` endpoint. This is confirmed as an SS data quality issue: the metadata shows paperCount:41 but the papers API returns only 4. The agent also tried `search_papers("author:Devendra Singh Chaplot navigation 2024 2025")` but got an irrelevant LLM bias paper. Active Neural SLAM was mentioned in several reader summaries as a known-relevant paper but was never added to a track.
+- **GNM** — Not found. Agent didn't follow ViNT's references deeply enough (ViNT references *were* fetched at iteration 8, which surfaced NoMaD, but GNM wasn't in that batch or wasn't selected).
+- **PRIOR lab (PoliFormer, FLaRe, RING)** — No path found. No AllenAI searches.
+
+### Chaplot SS Data Quality Issue (Confirmed)
+Author ID 2328602 for Devendra Singh Chaplot shows `paperCount:41` in the info endpoint, but `/author/2328602/papers` returns only 4 papers. These 4 are all recent LLM/NLP papers from his Meta AI tenure (Plan-Seq-Learn, Mixtral, Mistral, AUTOSUMM). His 2020 navigation papers appear to be under a different author node or unlinked in SS's author disambiguation. This explains why every run that does a Chaplot author lookup gets only LLM papers.
+
+**Workaround**: The agent should search by paper title: `search_papers("Active Neural SLAM Chaplot 2020")` or `search_papers("Learning to Explore using Active Neural SLAM")`. This would surface the paper directly and make it addable to a track. However, the user criteria emphasizes recent work and deprioritizes older papers, so the agent may not prioritize this search even if prompted.
+
+### minIterations=40 Assessment — Neutral
+The agent ran the full 40 iterations but found no new target papers after iteration 29. Iterations 30-40 produced redundant searches and wider exploration (social navigation, benchmarks, CoT reasoning) but no closer to the target papers. The bottleneck is not exploration depth — it's:
+1. SS data quality (Chaplot papers unreachable via author lookup)
+2. PRIOR lab structural disconnect (no citation path from seed or Shah lineage)
+3. Agent prioritization (prefers high-citation recent VLM papers over 2020-era SLAM papers)
+
+Going from minIterations=20 to 40 doubled exploration time (2458s vs 790s) but yielded the same score.
+
+### Timing Notes
+Reader LLM is 76% of total runtime. At 40 iterations with heavy batching (~2.5 reader calls per iteration), this is expected. Average reader call time dropped from 25.7s (run 13) to 18.6s — possibly shorter context in some calls.
+
+Bug noticed: line 694 in `toolGetAuthorPapers` references `authorId` (undefined) instead of `author_id` (the parameter name). The bug is in the return object for the `author` field — the returned `author.authorId` would be `undefined`. This doesn't crash but produces a slightly incorrect API response to the agent (missing authorId in the author info). Low priority.
 
 ---
 

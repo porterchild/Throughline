@@ -48,7 +48,7 @@ class ThroughlineAnalyzer {
     this.stopped = false;
     this.seedPapers = [];
 
-    this.timeStats = { agentCalls: 0, agentTimeMs: 0, agentTimings: [], readerCalls: 0, readerTimeMs: 0, readerTimings: [], ssCalls: 0, ssTimeMs: 0, ssTimings: [], ssRetries: 0, ssCacheHits: 0 };
+    this.timeStats = { agentCalls: 0, agentTimeMs: 0, agentTimings: [], agentTokensIn: 0, agentTokensOut: 0, agentTokensCachedIn: 0, readerCalls: 0, readerTimeMs: 0, readerTimings: [], readerTokensIn: 0, readerTokensOut: 0, readerTokensCachedIn: 0, ssCalls: 0, ssTimeMs: 0, ssTimings: [], ssRetries: 0, ssCacheHits: 0 };
     this.addPaperCallCount = 0;
     this.primer = '';
 
@@ -70,7 +70,7 @@ class ThroughlineAnalyzer {
     }
   }
 
-  async traceResearchLineages(seedPapers, onProgress) {
+  async exploreUserInterest(seedPapers, onProgress) {
     this.progressCallback = onProgress;
     return this.analyze(seedPapers);
   }
@@ -110,7 +110,7 @@ class ThroughlineAnalyzer {
     }
 
     // Run the agent
-    await this.runAgent(seedPapers);
+    const messages = await this.runAgent(seedPapers);
 
     const totalTime = ((Date.now() - analysisStartTime) / 1000).toFixed(1);
     this.logger.log(fmt(C.bold + C.bgreen, '\n' + '═'.repeat(70)));
@@ -124,14 +124,15 @@ class ThroughlineAnalyzer {
     const bar = (ms) => '█'.repeat(Math.round((ms / 1000) / totalTime * 20));
     const unaccounted = totalTime - (ts.agentTimeMs + ts.readerTimeMs + ts.ssTimeMs) / 1000;
     this.logger.log(fmt(C.bwhite, `\n  Time breakdown (total ${totalTime}s):`));
-    this.logger.log(fmt(C.bcyan,  `  Agent  LLM │${bar(ts.agentTimeMs).padEnd(20)}│ ${(ts.agentTimeMs/1000).toFixed(1)}s ${pct(ts.agentTimeMs)} — ${ts.agentCalls} calls, avg ${avg(ts.agentTimings)}ms, max ${max(ts.agentTimings)}ms`));
-    this.logger.log(fmt(C.brown,  `  Reader LLM │${bar(ts.readerTimeMs).padEnd(20)}│ ${(ts.readerTimeMs/1000).toFixed(1)}s ${pct(ts.readerTimeMs)} — ${ts.readerCalls} calls, avg ${avg(ts.readerTimings)}ms, max ${max(ts.readerTimings)}ms`));
+    const tokStr = (inn, out, cached) => `${inn.toLocaleString()} in${cached ? ` (${cached.toLocaleString()} cached)` : ''}, ${out.toLocaleString()} out`;
+    this.logger.log(fmt(C.bcyan,  `  Agent  LLM │${bar(ts.agentTimeMs).padEnd(20)}│ ${(ts.agentTimeMs/1000).toFixed(1)}s ${pct(ts.agentTimeMs)} — ${ts.agentCalls} calls, avg ${avg(ts.agentTimings)}ms, max ${max(ts.agentTimings)}ms — ${tokStr(ts.agentTokensIn, ts.agentTokensOut, ts.agentTokensCachedIn)}`));
+    this.logger.log(fmt(C.brown,  `  Reader LLM │${bar(ts.readerTimeMs).padEnd(20)}│ ${(ts.readerTimeMs/1000).toFixed(1)}s ${pct(ts.readerTimeMs)} — ${ts.readerCalls} calls, avg ${avg(ts.readerTimings)}ms, max ${max(ts.readerTimings)}ms — ${tokStr(ts.readerTokensIn, ts.readerTokensOut, ts.readerTokensCachedIn)}`));
     this.logger.log(fmt(C.green,  `  SS API     │${bar(ts.ssTimeMs).padEnd(20)}│ ${(ts.ssTimeMs/1000).toFixed(1)}s ${pct(ts.ssTimeMs)} — ${ts.ssCalls} calls, avg ${avg(ts.ssTimings)}ms, max ${max(ts.ssTimings)}ms (${ts.ssCacheHits} cache hits, ${ts.ssRetries} retries)`));
     this.logger.log(fmt(C.dim,    `  Other/wait  │${'░'.repeat(20)}│ ${unaccounted.toFixed(1)}s ${((unaccounted/totalTime)*100).toFixed(0)}% (rate-limit waits, overhead)`));
     this.logger.log(fmt(C.bold + C.bgreen, '═'.repeat(70)) + '\n');
 
     this.updateProgress('Analysis complete', `Found ${this.threads.length} research threads`, 100);
-    return { threads: this.threads, primer: this.primer };
+    return { threads: this.threads, primer: this.primer, messages };
   }
 
   async resolvePaperId(paper) {
@@ -141,7 +142,7 @@ class ThroughlineAnalyzer {
       return;
     }
     const resp = await this.throttledSemanticScholarCall({
-      url: `https://api.semanticscholar.org/graph/v1/paper/search/match?query=${encodeURIComponent(paper.title)}&fields=paperId,title,abstract,year,authors,citationCount`,
+      url: `https://api.semanticscholar.org/graph/v1/paper/search/match?query=${encodeURIComponent(paper.title)}&fields=paperId,title,abstract,year,publicationDate,authors,citationCount`,
       method: 'GET'
     }, `paper match: ${paper.title.substring(0, 30)}...`);
     if (resp.data.data && resp.data.data.length > 0) {
@@ -185,6 +186,8 @@ Be curious, and develop an understanding of the research relevant to the User's 
 Before each response, briefly decide:
 - what remains uncertain under the user's criteria
 - which tool calls will reduce that uncertainty the most
+
+Even though you can edit and mutate the artifacts as you get more clarity, it's best not to start constructing them at all until you've gotten a 'feel' for the topology of the research wrt. what the user wants, in order to avoid prematurely commiting to a certain paradigm. Do some exploration before you decide your framing. Then, as you continue to explore, refactor and reframe your viewpoint and artifacts.
 
 You can make multiple tool calls in a single response — use this when you have independent questions that don't depend on each other's results (e.g. fetching citations of paper A while simultaneously fetching author papers for author B). Batching independent calls is faster and encouraged.
 
@@ -243,7 +246,9 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         try {
           toolArgs = JSON.parse(call.function.arguments);
         } catch (e) {
-          messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: `Bad arguments: ${e.message}` }) });
+          const errMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: `Bad arguments: ${e.message}` }) };
+          if (call.thoughtSignature) errMsg.thoughtSignature = call.thoughtSignature;
+          messages.push(errMsg);
           this.logger.warn(fmt(C.yellow, `│ [bad args] ${toolName}: ${e.message}`));
           continue;
         }
@@ -260,7 +265,9 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         this.logger.log(fmt(C.bgreen, `│ ▶ ${toolName}`) + fmt(C.green, `(${argSummary})`) + focusSummary);
 
         const result = await this.executeTool(toolName, toolArgs);
-        messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
+        const toolMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) };
+        if (call.thoughtSignature) toolMsg.thoughtSignature = call.thoughtSignature;
+        messages.push(toolMsg);
 
         if (toolName === 'done' && result.done) agentDone = true;
 
@@ -270,7 +277,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         } else if (result.papers !== undefined) {
           // papers returned by reader — count logged by reader itself
         } else if (result.added) {
-          this.logger.log(fmt(C.magenta, `│   + [track ${toolArgs.track_index}] "${result.title}" (${result.year})`) + fmt(C.dim, ` [${result.authors}]`));
+          this.logger.log(fmt(C.magenta, `│   + [track ${toolArgs.track_index}] "${result.title}" (${result.year})`) + fmt(C.dim, ` [${result.authors}]${result.citationCount != null ? ' ' + result.citationCount + ' cit.' : ''}`));
         } else if (result.skipped) {
           this.logger.log(fmt(C.dim, `│   ~ skip: ${result.reason} — "${result.title}"`));
         } else if (result.track_created) {
@@ -305,6 +312,66 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     }
 
     this.logger.log(fmt(C.dim, `\n[Agent] Finished after ${iterations} iterations.`));
+    return messages;
+  }
+
+  async chat(messages) {
+    const readline = require('readline');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const ask = (prompt) => new Promise(resolve => rl.question(prompt, resolve));
+
+    console.log('\n' + '─'.repeat(70));
+    console.log('  Chat with the agent — ask it about its decisions, gaps, reasoning, and do additional analysis.');
+    console.log('  Type "exit" or Ctrl+C to quit.');
+    console.log('─'.repeat(70) + '\n');
+
+    rl.on('close', () => process.exit(0));
+
+    while (true) {
+      const input = await ask('You: ');
+      if (input.trim().toLowerCase() === 'exit' || input.trim().toLowerCase() === 'quit') break;
+      if (!input.trim()) continue;
+
+      messages.push({ role: 'user', content: input.trim() });
+
+      try {
+        let response = await this.callLLMWithTools(messages);
+        messages.push(response.message);
+
+        if (response.message.content) {
+          console.log(`\nAgent: ${response.message.content}\n`);
+        }
+
+        // Execute any tool calls the agent makes
+        while (response.toolCalls && response.toolCalls.length > 0) {
+          for (const call of response.toolCalls) {
+            const toolName = call.function.name;
+            let toolArgs;
+            try { toolArgs = JSON.parse(call.function.arguments); } catch (e) {
+              const errMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: e.message }) };
+              if (call.thoughtSignature) errMsg.thoughtSignature = call.thoughtSignature;
+              messages.push(errMsg);
+              continue;
+            }
+            if (toolArgs.rationale) console.log(fmt(C.dim, `  [${toolName}] ${toolArgs.rationale}`));
+            const result = await this.executeTool(toolName, toolArgs);
+            const toolMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) };
+            if (call.thoughtSignature) toolMsg.thoughtSignature = call.thoughtSignature;
+            messages.push(toolMsg);
+          }
+          response = await this.callLLMWithTools(messages);
+          messages.push(response.message);
+          if (response.message.content) {
+            console.log(`\nAgent: ${response.message.content}\n`);
+          }
+        }
+      } catch (e) {
+        console.error(`\nError: ${e.message}\n`);
+        messages.pop();
+      }
+    }
+
+    rl.close();
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -317,7 +384,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         type: 'function',
         function: {
           name: 'search_papers',
-          description: 'Search Semantic Scholar for papers matching a query. Results are filtered by a reader model based on your focus instructions. Short keyword phrases (2-4 words) work best. Good for jumping into a new subfield or finding papers with no citation path to anything you have already found. Less effective than get_author_papers for finding all work from a specific person or group. Results are sensitive to exact phrasing — if a search is important, try it from a few different angles (different terminology, synonyms, author names) rather than relying on a single query.',
+          description: 'Search Semantic Scholar for papers matching a query. Results are filtered by a reader model based on your focus instructions. Short keyword phrases (2-4 words) work best. Good for jumping into a new subfield or finding papers with no citation path to anything you have already found. Less effective than get_author_papers for finding all work from a specific person or group. Results are sensitive to exact phrasing — if unsure, try multiple times from a few different angles (different terminology, synonyms, phrasings) rather than relying on a single query.',
           parameters: {
             type: 'object',
             properties: {
@@ -391,7 +458,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
             type: 'object',
             properties: {
               rationale: { type: 'string', description: RATIONALE_DESC },
-              query: { type: 'string', description: 'Author name to search for' }
+              query: { type: 'string', description: 'Author name only — do not include affiliation, institution, or any other context. E.g. "Devendra Singh Chaplot", not "Devendra Singh Chaplot CMU".' }
             },
             required: ['rationale', 'query']
           }
@@ -555,6 +622,21 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       {
         type: 'function',
         function: {
+          name: 'audit_relevance_to_user_interest',
+          description: 'Audit the current tracks and papers against the user\'s stated interest. Use this to take stock of where you are, identify gaps (directions implied by the user\'s criteria that you haven\'t covered yet, or not deeply enough yet), and flag bloat (tracks or papers that have drifted from the user\'s core interest). Call this when you\'re unsure what to explore next — it will help you find specific, high-value directions rather than searching blindly.',
+          parameters: {
+            type: 'object',
+            properties: {
+              rationale: { type: 'string', description: RATIONALE_DESC },
+              audit: { type: 'string', description: 'Your honest assessment: what you have found, what is missing or under-explored relative to the user\'s criteria, any bloat, and what the highest-value next steps are' }
+            },
+            required: ['rationale', 'audit']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
           name: 'done',
           description: 'Signal that exploration is complete only when major uncertainties under the user\'s criteria are resolved and additional tool calls are unlikely to materially change track structure.',
           parameters: {
@@ -592,6 +674,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         case 'view_primer': return this.toolViewPrimer();
         case 'append_to_primer': return this.toolAppendToPrimer(args);
         case 'update_primer': return this.toolUpdatePrimer(args);
+        case 'audit_relevance_to_user_interest': return this.toolAuditRelevance(args);
         case 'done': return this.toolDone(args);
         default: return { error: `Unknown tool: ${name}` };
       }
@@ -603,7 +686,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   async toolSearchPapers({ query, focus, min_year, limit }) {
     const SS_SEARCH_MAX = 50; // always fetch max so the URL is stable across runs → cache hits
     const requested = Math.min(limit || 20, SS_SEARCH_MAX);
-    let url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_SEARCH_MAX}`;
+    let url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=paperId,title,abstract,year,publicationDate,authors,citationCount&limit=${SS_SEARCH_MAX}`;
     if (min_year) url += `&publicationDateOrYear=${min_year}:`;
     const resp = await this.throttledSemanticScholarCall({ url, method: 'GET' }, `search: ${query}`);
     const papers = (resp.data.data || []).filter(p => p && p.paperId).slice(0, requested);
@@ -615,7 +698,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     const SS_CITATIONS_MAX = 200; // always fetch max so the URL is stable across runs → cache hits
     const requested = Math.min(limit || 50, SS_CITATIONS_MAX);
     const resp = await this.throttledSemanticScholarCall({
-      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/citations?fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_CITATIONS_MAX}`,
+      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/citations?fields=paperId,title,abstract,year,publicationDate,authors,citationCount&limit=${SS_CITATIONS_MAX}`,
       method: 'GET'
     }, `citations: ${paper_id.substring(0, 12)}...`);
     const papers = (resp.data.data || []).map(c => c.citingPaper).filter(p => p && p.paperId).slice(0, requested);
@@ -629,7 +712,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     const SS_REFERENCES_MAX = 100; // always fetch max so the URL is stable across runs → cache hits
     const requested = Math.min(limit || 50, SS_REFERENCES_MAX);
     const resp = await this.throttledSemanticScholarCall({
-      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/references?fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_REFERENCES_MAX}`,
+      url: `https://api.semanticscholar.org/graph/v1/paper/${paper_id}/references?fields=paperId,title,abstract,year,publicationDate,authors,citationCount&limit=${SS_REFERENCES_MAX}`,
       method: 'GET'
     }, `references: ${paper_id.substring(0, 12)}...`);
     const papers = (resp.data.data || []).map(r => r.citedPaper).filter(p => p && p.paperId).slice(0, requested);
@@ -643,7 +726,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     const SS_RECOMMENDATIONS_MAX = 100; // always fetch max so the URL is stable across runs → cache hits
     const requested = Math.min(limit || 50, SS_RECOMMENDATIONS_MAX);
     const resp = await this.throttledSemanticScholarCall({
-      url: `https://api.semanticscholar.org/recommendations/v1/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=${SS_RECOMMENDATIONS_MAX}`,
+      url: `https://api.semanticscholar.org/recommendations/v1/papers?fields=paperId,title,abstract,year,publicationDate,authors,citationCount&limit=${SS_RECOMMENDATIONS_MAX}`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: { positivePaperIds: [paper_id] }
@@ -683,7 +766,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
     this.logger.log(fmt(C.cyan, `  [author] ${authorName}`) + fmt(C.dim, `  h-index:${authorHIndex}  papers:${authorPaperCount}  id:${author_id}`));
 
-    let url = `https://api.semanticscholar.org/graph/v1/author/${author_id}/papers?fields=paperId,title,abstract,year,authors,citationCount&limit=50`;
+    let url = `https://api.semanticscholar.org/graph/v1/author/${author_id}/papers?fields=paperId,title,abstract,year,publicationDate,authors,citationCount&limit=50`;
     if (min_year) url += `&publicationDateOrYear=${min_year}:`;
     const papersResp = await this.throttledSemanticScholarCall({ url, method: 'GET' }, `author papers: ${authorName}`);
     const papers = (papersResp.data.data || []).filter(p => p && p.paperId);
@@ -691,7 +774,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
     const filtered = await this.filterWithReader(papers, focus, `papers by ${authorName}`);
     return {
-      author: { name: authorName, authorId, hIndex: authorHIndex, paperCount: authorPaperCount },
+      author: { name: authorName, authorId: author_id, hIndex: authorHIndex, paperCount: authorPaperCount },
       ...filtered
     };
   }
@@ -729,7 +812,11 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     }
 
     paper.selectionReason = reason;
-    const insertIdx = track.papers.findIndex(p => (p.year || 0) > (paper.year || 0));
+    const paperDate = paper.publicationDate || (paper.year ? `${paper.year}-99` : '0000-99');
+    const insertIdx = track.papers.findIndex(p => {
+      const pDate = p.publicationDate || (p.year ? `${p.year}-99` : '0000-99');
+      return pDate > paperDate;
+    });
     if (insertIdx === -1) track.papers.push(paper);
     else track.papers.splice(insertIdx, 0, paper);
     this.processedPapers.add(paper_id);
@@ -748,6 +835,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       title: paper.title,
       year: paper.year,
       authors,
+      citationCount: paper.citationCount ?? null,
       trackSize: track.papers.length
     };
   }
@@ -832,11 +920,16 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
     return { updated: true, primer_length: this.primer.length };
   }
 
+  toolAuditRelevance({ audit }) {
+    this.logger.log(fmt(C.bold + C.cyan, `  [audit] `) + fmt(C.cyan, audit));
+    return { acknowledged: true };
+  }
+
   toolDone({ summary }) {
     if (this.currentIteration < this.minIterations) {
       const remaining = this.minIterations - this.currentIteration;
       this.logger.log(fmt(C.yellow, `  [done blocked] iteration ${this.currentIteration}/${this.minIterations}`));
-      return { error: `Too early to stop. You are on iteration ${this.currentIteration} but must complete at least ${this.minIterations} iterations (${remaining} more to go). Keep exploring according to the user's interest.` };
+      return { error: `Too early to stop. You are on iteration ${this.currentIteration} but must complete at least ${this.minIterations} iterations (${remaining} more to go). Call audit_relevance_to_user_interest first to take stock of what you have, what's missing, and where to go next — then continue exploring.` };
     }
     this.logger.log(fmt(C.bold + C.bgreen, `  [done] ${summary}`));
     return { done: true, summary };
@@ -897,19 +990,19 @@ RAW PAPERS:
 ${JSON.stringify(rawPapers)}
 
 YOUR TASK:
-1. Select papers that strongly match the main agent's focus and the user's criteria ("papers")
+1. Select papers that could match the main agent's focus and the user's criteria ("papers")
 2. Select papers that might be relevant but are lower-confidence ("borderline")
-3. Exclude papers that are clearly irrelevant
+3. Only exclude papers that are clearly irrelevant
 
-For each paper, include full data plus a brief "note".
+Err on the side of including papers. The main agent will make the final judgment on what to add to tracks — your job is to remove noise (clearly unrelated fields, name collisions, older low-citation papers, etc.), not to aggressively filter based on the focus.
 
-Respond with valid JSON only:
+Respond with valid JSON only — output only the paper id and a brief note, nothing else:
 {
   "papers": [
-    { "id": "...", "title": "...", "year": ..., "authors": "...", "author_ids": {...}, "citations": ..., "abstract": "...", "note": "why this matches the focus" }
+    { "id": "...", "note": "why this matches the focus" }
   ],
   "borderline": [
-    { "id": "...", "title": "...", "year": ..., "authors": "...", "author_ids": {...}, "citations": ..., "abstract": "...", "note": "why this might be relevant but uncertain" }
+    { "id": "...", "note": "why this might be relevant but uncertain" }
   ],
   "summary": "What you found, including any coverage gaps"
 }`;
@@ -919,16 +1012,18 @@ Respond with valid JSON only:
     try {
       const readerResult = await this.callReaderLLM(readerPrompt);
       const parsed = JSON.parse(readerResult);
-      const selected = parsed.papers || [];
-      const borderline = parsed.borderline || [];
+      const rawById = Object.fromEntries(rawPapers.map(p => [p.id, p]));
+      const hydrate = (r) => ({ ...rawById[r.id], ...r });
+      const selected = (parsed.papers || []).map(hydrate).filter(p => p.title);
+      const borderline = (parsed.borderline || []).map(hydrate).filter(p => p.title);
 
       if (selected.length > 0) {
         this.logger.log(fmt(C.bold + C.brown, `  [Reader: selected]`) + fmt(C.dim, ` ${selected.length} of ${rawPapers.length}`));
-        selected.forEach(p => this.logger.log(fmt(C.brown, `    · "${p.title}" (${p.year})`) + fmt(C.dim, ` [${p.authors || ''}] — ${p.note || ''}`)));
+        selected.forEach(p => this.logger.log(fmt(C.brown, `    · "${p.title}" (${p.year})`) + fmt(C.dim, ` [${p.authors || ''}] ${p.citations != null ? p.citations + ' cit. — ' : '— '}${p.note || ''}`)));
       }
       if (borderline.length > 0) {
         this.logger.log(fmt(C.bold + C.brown, `  [Reader: borderline]`) + fmt(C.dim, ` ${borderline.length} of ${rawPapers.length}`));
-        borderline.forEach(p => this.logger.log(fmt(C.dim, `    ~ "${p.title}" (${p.year}) [${p.authors || ''}] — ${p.note || ''}`)));
+        borderline.forEach(p => this.logger.log(fmt(C.dim, `    ~ "${p.title}" (${p.year}) [${p.authors || ''}] ${p.citations != null ? p.citations + ' cit. — ' : '— '}${p.note || ''}`)));
       }
       if (selected.length === 0 && borderline.length === 0) {
         this.logger.log(fmt(C.dim, `  [Reader: selected] 0 of ${rawPapers.length}`));
@@ -964,7 +1059,7 @@ Respond with valid JSON only:
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
+            model: 'x-ai/grok-4.1-fast',
             messages,
             max_tokens: this.maxCompletionTokens,
             reasoning: { enabled: true },
@@ -984,6 +1079,11 @@ Respond with valid JSON only:
         this.timeStats.readerCalls++;
         this.timeStats.readerTimeMs += elapsed;
         this.timeStats.readerTimings.push(elapsed);
+        if (data.usage) {
+          this.timeStats.readerTokensIn += data.usage.prompt_tokens || 0;
+          this.timeStats.readerTokensOut += data.usage.completion_tokens || 0;
+          this.timeStats.readerTokensCachedIn += data.usage.prompt_tokens_details?.cached_tokens || 0;
+        }
 
         const choice = data.choices[0];
         const readerSummaries = (choice.message.reasoning_details || [])
@@ -1000,16 +1100,16 @@ Respond with valid JSON only:
         } catch (jsonErr) {
           const truncated = choice.finish_reason === 'length'
             || (data.usage?.completion_tokens >= this.maxCompletionTokens);
-          if (truncated) {
-            throw new Error(`Reader response truncated (hit token limit) — ${jsonErr.message}`);
-          }
+          const reason = truncated
+            ? `Reader response truncated (hit token limit) — ${jsonErr.message}`
+            : `Reader returned invalid JSON — ${jsonErr.message}`;
           if (attempt < 2) {
-            this.logger.warn(fmt(C.yellow, `  [Reader: bad JSON, retrying] ${jsonErr.message}`));
+            this.logger.warn(fmt(C.yellow, `  [Reader: bad JSON, retrying] ${reason}`));
             messages.push({ role: 'assistant', content });
             messages.push({ role: 'user', content: 'Your response was not valid JSON. Please respond with valid JSON only, matching the schema requested.' });
             continue;
           }
-          throw new Error(`Reader returned invalid JSON after 3 attempts — ${jsonErr.message}`);
+          throw new Error(reason);
         }
       } catch (e) {
         if (attempt < 2) {
@@ -1051,7 +1151,11 @@ Respond with valid JSON only:
         if (!response.ok) {
           const errText = await response.text();
           this.logger.error(fmt(C.bred, `[LLM] HTTP ${response.status}: ${errText.substring(0,200)}`));
-          if (attempt < 2) { await this.sleep(3000); continue; }
+          if (attempt < 2) {
+            const delay = response.status >= 500 ? 15000 : 3000;
+            await this.sleep(delay);
+            continue;
+          }
           throw new Error(`LLM API error: ${response.status}`);
         }
 
@@ -1060,6 +1164,11 @@ Respond with valid JSON only:
         this.timeStats.agentCalls++;
         this.timeStats.agentTimeMs += elapsed;
         this.timeStats.agentTimings.push(elapsed);
+        if (data.usage) {
+          this.timeStats.agentTokensIn += data.usage.prompt_tokens || 0;
+          this.timeStats.agentTokensOut += data.usage.completion_tokens || 0;
+          this.timeStats.agentTokensCachedIn += data.usage.prompt_tokens_details?.cached_tokens || 0;
+        }
 
         const choice = data.choices[0];
         // Log reasoning summaries (encrypted blocks are intentionally opaque)

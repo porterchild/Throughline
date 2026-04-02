@@ -21,7 +21,7 @@ const { ThroughlineAnalyzer } = require('./src/throughline-analyzer.js');
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_USER_CRITERIA = "I want to trace research lineages by following lab/author continuations and methodological evolution in robotic visual navigation. Find the distinct lab lineages that have emerged in the last 5 or so years. The seed paper is kinda old, but seems to be one of those lineages that are high-quality, but I know there are others. Robotic navigation is what I'm interested in. It seems like the field is moving towards more and more neural networks, which makes sense given the progress in LLM land. So traditional SLAM is less interesting to me. \nTo be clear, I would just ask for a tracing of the SOTA progress over time in this field, but unfortunately the field doesn't seem to have a common set of benchmarks, and each lab focuses on their own evals. Well, there are a few common ones in VLM-for-nav land. So those are worth following. The seed is an older paper, so it won't refer to those, you'll have to find them.\nI'm coming at this as an engineer looking to adapt the latest research to an outdoor robot (not to say that indoor research won't be a important part of your search). So I don't really care about the details of implementation, and I'm not opinionated about anything except performance in real-world scenarios, and the adaptability/generality of solutions. For example, being able to give language instructions would be awesome. Make sure to follow any interesting lineages you find all the way to the latest research, I'm most interested in what has come out in the last 6 months, this space is moving fast. Tracing the lineages is really just a way to make sure that you can identify the high-quality research that has come out recently.\n This is a very crowded research space, so I want you to go so deep that you find yourself going in circles, that's when you know you've gone deep enough, i.e. you've come across many the same papers from multiple independent angles. To help filter noise and recognize gold, use relative citation counts as an approximate proxy for quality (consider any papers older than a year old with few citations as noise, ignore them).";
+const DEFAULT_USER_CRITERIA = "I want to trace research lineages by following lab/author continuations and methodological evolution in robotic visual navigation. Find the distinct lab lineages that have emerged in the last 5 or so years. The seed paper is kinda old, but seems to be one of those lineages that are high-quality, but I know there are others. Robotic navigation is what I'm interested in. It seems like the field is moving towards more and more neural networks, which makes sense given the progress in LLM land. So traditional SLAM is less interesting to me. \nTo be clear, I would just ask for a tracing of the SOTA progress over time in this field, but unfortunately the field doesn't seem to have a common set of benchmarks, and each lab focuses on their own evals. Well, there are a few common ones in VLM-for-nav land. So those are worth following. The seed is an older paper, so it won't refer to those, you'll have to find them.\nI'm coming at this as an engineer looking to adapt the latest research to an outdoor robot (not to say that indoor research won't be a important part of your search). So I don't really care about the details of implementation, and I'm not opinionated about anything except performance in real-world scenarios, and the adaptability/generality of solutions. For example, being able to give language instructions would be awesome. Make sure to follow any interesting lineages you find all the way to the latest research, I'm most interested in what has come out in the last 6 months, this space is moving fast. Tracing the lineages is really just a way to make sure that you can identify the high-quality research that has come out recently.\n This is a very crowded research space, so I want you to go so deep that you find yourself going in circles, that's when you know you've gone deep enough, i.e. you've come across many the same papers from multiple independent angles. To help filter noise and recognize gold, use relative citation counts as an approximate proxy for quality (consider any papers older than a year old with few citations as noise, ignore them). Also don't include very recent papers (2026) unless they come from a high-quality author/lab, or claim to directly outperform the previous SOTA.";
 
 // Load .env file if it exists
 function loadEnvFile() {
@@ -108,7 +108,7 @@ async function analyzePapers(papers, apiKey, options = {}) {
   const startTime = Date.now();
   
   try {
-    const { threads, primer } = await analyzer.traceResearchLineages(papers, onProgress);
+    const { threads, primer, messages } = await analyzer.exploreUserInterest(papers, onProgress);
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`\n\nAnalysis complete in ${duration}s!`);
@@ -118,6 +118,7 @@ async function analyzePapers(papers, apiKey, options = {}) {
       success: true,
       threads,
       primer,
+      messages,
       duration: parseFloat(duration),
       seedPapers: papers.length
     };
@@ -151,7 +152,8 @@ function displayResults(results) {
     
     thread.papers.forEach((paper, j) => {
       const indent = j === 0 ? '     → ' : '       ';
-      console.log(`${indent}[${paper.year}] ${paper.title}`);
+      const cit = paper.citationCount != null ? ` (${paper.citationCount} cit.)` : '';
+      console.log(`${indent}[${paper.year}]${cit} ${paper.title}`);
       if (paper.selectionReason && j > 0) {
         console.log(`         └─ ${paper.selectionReason}`);
       }
@@ -191,9 +193,11 @@ async function main() {
   const keySource = fs.existsSync(path.join(__dirname, '.env')) ? '.env file' : 'environment variable';
   console.log(`Using API key from ${keySource}`);
 
+  const talkAfter = process.argv.includes('--talk-with-agent-after-finishing');
+
   // Load papers from file if provided, otherwise use examples
   let papers;
-  const inputFile = process.argv[2];
+  const inputFile = process.argv.find(a => !a.startsWith('--') && a !== process.argv[0] && a !== process.argv[1]);
   
   if (inputFile) {
     try {
@@ -212,7 +216,7 @@ async function main() {
 
   // Run analysis
   const results = await analyzePapers(papers, apiKey);
-  
+
   // Display results
   displayResults(results);
 
@@ -227,7 +231,12 @@ async function main() {
       fs.writeFileSync(primerFile, results.primer);
       console.log(`Research primer saved to ${primerFile}`);
     }
-    
+
+    if (talkAfter && results.messages) {
+      const { ThroughlineAnalyzer } = require('./src/throughline-analyzer.js');
+      const chatAnalyzer = new ThroughlineAnalyzer({ openRouterApiKey: apiKey });
+      await chatAnalyzer.chat(results.messages);
+    }
   }
 }
 
