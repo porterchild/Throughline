@@ -204,7 +204,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
     let iterations = 0;
     const maxIterations = 100;
-    const minIterations = this.minIterations || 20;
+    const minIterations = await this.assessCriteriaComplexity(criteria);
     this.currentIteration = 0;
     this.minIterations = minIterations;
 
@@ -949,6 +949,35 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
   toolAuditRelevance({ audit }) {
     this.logger.log(fmt(C.bold + C.cyan, `  [audit] `) + fmt(C.cyan, audit));
     return { acknowledged: true };
+  }
+
+  async assessCriteriaComplexity(criteria) {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${this.openRouterApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'x-ai/grok-4.1-fast',
+          messages: [
+            { role: 'user', content: `Rate the exploration complexity of this research interest on a scale of 1–5:\n1 = narrow (one topic, one lineage, few papers expected)\n5 = broad (multiple distinct lab lineages, wide temporal scope, many interacting subfields)\n\nRespond with valid JSON only: { "rationale": "...", "number": <1-5> }\n\nResearch interest:\n${criteria}` }
+          ],
+          max_tokens: 1024,
+          reasoning: { enabled: true }
+        })
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const raw = (data.choices?.[0]?.message?.content || '').trim();
+      const parsed = JSON.parse(raw);
+      const complexity = Math.min(5, Math.max(1, parseInt(parsed.number, 10) || 3));
+      this.logger.log(fmt(C.dim, `  ${parsed.rationale}`));
+      const minIter = { 1: 5, 2: 11, 3: 18, 4: 24, 5: 30 }[complexity];
+      this.logger.log(fmt(C.bwhite, `  Complexity: ${complexity}/5 → minIterations: ${minIter}`));
+      return minIter;
+    } catch (e) {
+      this.logger.warn(fmt(C.yellow, `  [complexity assessment failed: ${e.message}] defaulting to 20`));
+      return 20;
+    }
   }
 
   toolDone({ summary }) {
