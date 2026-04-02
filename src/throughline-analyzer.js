@@ -48,7 +48,7 @@ class ThroughlineAnalyzer {
     this.stopped = false;
     this.seedPapers = [];
 
-    this.timeStats = { agentCalls: 0, agentTimeMs: 0, agentTimings: [], agentTokensIn: 0, agentTokensOut: 0, agentTokensCachedIn: 0, readerCalls: 0, readerTimeMs: 0, readerTimings: [], readerTokensIn: 0, readerTokensOut: 0, readerTokensCachedIn: 0, ssCalls: 0, ssTimeMs: 0, ssTimings: [], ssRetries: 0, ssCacheHits: 0 };
+    this.timeStats = { agentCalls: 0, agentTimeMs: 0, agentTimings: [], agentTokensIn: 0, agentTokensOut: 0, agentTokensCachedIn: 0, readerCalls: 0, readerTimeMs: 0, readerWallMs: 0, readerTimings: [], readerTokensIn: 0, readerTokensOut: 0, readerTokensCachedIn: 0, ssCalls: 0, ssTimeMs: 0, ssTimings: [], ssRetries: 0, ssCacheHits: 0 };
     this.addPaperCallCount = 0;
     this.primer = '';
 
@@ -121,14 +121,16 @@ class ThroughlineAnalyzer {
     const pct = (ms) => totalTime > 0 ? ((ms / 1000) / totalTime * 100).toFixed(0) + '%' : '?';
     const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
     const max = (arr) => arr.length ? Math.round(Math.max(...arr)) : 0;
-    const bar = (ms) => '█'.repeat(Math.round((ms / 1000) / totalTime * 20));
-    const unaccounted = totalTime - (ts.agentTimeMs + ts.readerTimeMs + ts.ssTimeMs) / 1000;
-    this.logger.log(fmt(C.bwhite, `\n  Time breakdown (total ${totalTime}s):`));
+    const bar = (ms) => '█'.repeat(Math.min(20, Math.round((ms / 1000) / totalTime * 20)));
+    const readerConcurrency = ts.readerWallMs > 0 ? (ts.readerTimeMs / ts.readerWallMs).toFixed(1) : null;
+    const readerConcurrencyStr = readerConcurrency && parseFloat(readerConcurrency) > 1.1 ? ` [${readerConcurrency}× concurrency, ${(ts.readerTimeMs/1000).toFixed(0)}s cumulative]` : '';
+    const unaccounted = totalTime - (ts.agentTimeMs + ts.readerWallMs + ts.ssTimeMs) / 1000;
+    this.logger.log(fmt(C.bwhite, `\n  Time breakdown (wall-clock, total ${totalTime}s):`));
     const tokStr = (inn, out, cached) => `${inn.toLocaleString()} in${cached ? ` (${cached.toLocaleString()} cached)` : ''}, ${out.toLocaleString()} out`;
     this.logger.log(fmt(C.bcyan,  `  Agent  LLM │${bar(ts.agentTimeMs).padEnd(20)}│ ${(ts.agentTimeMs/1000).toFixed(1)}s ${pct(ts.agentTimeMs)} — ${ts.agentCalls} calls, avg ${avg(ts.agentTimings)}ms, max ${max(ts.agentTimings)}ms — ${tokStr(ts.agentTokensIn, ts.agentTokensOut, ts.agentTokensCachedIn)}`));
-    this.logger.log(fmt(C.brown,  `  Reader LLM │${bar(ts.readerTimeMs).padEnd(20)}│ ${(ts.readerTimeMs/1000).toFixed(1)}s ${pct(ts.readerTimeMs)} — ${ts.readerCalls} calls, avg ${avg(ts.readerTimings)}ms, max ${max(ts.readerTimings)}ms — ${tokStr(ts.readerTokensIn, ts.readerTokensOut, ts.readerTokensCachedIn)}`));
+    this.logger.log(fmt(C.brown,  `  Reader LLM │${bar(ts.readerWallMs).padEnd(20)}│ ${(ts.readerWallMs/1000).toFixed(1)}s ${pct(ts.readerWallMs)}${readerConcurrencyStr} — ${ts.readerCalls} calls, avg ${avg(ts.readerTimings)}ms, max ${max(ts.readerTimings)}ms — ${tokStr(ts.readerTokensIn, ts.readerTokensOut, ts.readerTokensCachedIn)}`));
     this.logger.log(fmt(C.green,  `  SS API     │${bar(ts.ssTimeMs).padEnd(20)}│ ${(ts.ssTimeMs/1000).toFixed(1)}s ${pct(ts.ssTimeMs)} — ${ts.ssCalls} calls, avg ${avg(ts.ssTimings)}ms, max ${max(ts.ssTimings)}ms (${ts.ssCacheHits} cache hits, ${ts.ssRetries} retries)`));
-    this.logger.log(fmt(C.dim,    `  Other/wait  │${'░'.repeat(20)}│ ${unaccounted.toFixed(1)}s ${((unaccounted/totalTime)*100).toFixed(0)}% (rate-limit waits, overhead)`));
+    this.logger.log(fmt(C.dim,    `  Other/wait  │${'░'.repeat(20)}│ ${unaccounted.toFixed(1)}s ${((unaccounted/totalTime)*100).toFixed(0)}%`));
     this.logger.log(fmt(C.bold + C.bgreen, '═'.repeat(70)) + '\n');
 
     this.updateProgress('Analysis complete', `Found ${this.threads.length} research threads`, 100);
@@ -240,20 +242,22 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
       }
 
       let agentDone = false;
-      for (const call of response.toolCalls) {
+
+      // Reader tools are slow (SS fetch + LLM filter) — launch them all concurrently.
+      // Fast tools (track ops, done, search_authors) run sequentially in the result loop below.
+      const READER_TOOLS = new Set(['search_papers', 'get_paper_citations', 'get_paper_references', 'get_recommendations', 'get_author_papers']);
+
+      // Parse args and kick off reader tools immediately; defer logging until result loop
+      // so each call's start line prints adjacent to its results (not all bunched at the top).
+      const pendingCalls = response.toolCalls.map(call => {
         const toolName = call.function.name;
         let toolArgs;
         try {
           toolArgs = JSON.parse(call.function.arguments);
         } catch (e) {
-          const errMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: `Bad arguments: ${e.message}` }) };
-          if (call.thoughtSignature) errMsg.thoughtSignature = call.thoughtSignature;
-          messages.push(errMsg);
-          this.logger.warn(fmt(C.yellow, `│ [bad args] ${toolName}: ${e.message}`));
-          continue;
+          return { call, toolName, toolArgs: null, parseError: e, promise: null, logStart: null };
         }
 
-        // Format tool call — show key args
         const argSummary = toolArgs.paper_id ? `paper:${toolArgs.paper_id}`
           : toolArgs.query ? `"${toolArgs.query}"`
           : toolArgs.author_id ? `author_id:${toolArgs.author_id}`
@@ -261,10 +265,32 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           : toolArgs.track_index !== undefined ? `track:${toolArgs.track_index}`
           : '';
         const focusSummary = toolArgs.focus ? fmt(C.dim, `  focus: "${toolArgs.focus}"`) : '';
-        if (toolArgs.rationale) this.logger.log(fmt(C.bold + C.bcyan, `│ [Agent tool call rationale] `) + fmt(C.bcyan, toolArgs.rationale));
-        this.logger.log(fmt(C.bgreen, `│ ▶ ${toolName}`) + fmt(C.green, `(${argSummary})`) + focusSummary);
+        const logStart = () => {
+          if (toolArgs.rationale) this.logger.log(fmt(C.bold + C.bcyan, `│ [Agent tool call rationale] `) + fmt(C.bcyan, toolArgs.rationale));
+          this.logger.log(fmt(C.bgreen, `│ ▶ ${toolName}`) + fmt(C.green, `(${argSummary})`) + focusSummary);
+        };
 
-        const result = await this.executeTool(toolName, toolArgs);
+        const promise = READER_TOOLS.has(toolName) ? this.executeTool(toolName, toolArgs) : null;
+        return { call, toolName, toolArgs, parseError: null, promise, logStart };
+      });
+
+      // Wait for all reader tools to finish concurrently; measure wall-clock time for histogram
+      const readerBatchStart = Date.now();
+      await Promise.all(pendingCalls.filter(p => p.promise).map(p => p.promise));
+      if (pendingCalls.some(p => p.promise)) this.timeStats.readerWallMs += Date.now() - readerBatchStart;
+
+      for (const { call, toolName, toolArgs, parseError, promise, logStart } of pendingCalls) {
+
+        if (parseError) {
+          const errMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: `Bad arguments: ${parseError.message}` }) };
+          if (call.thoughtSignature) errMsg.thoughtSignature = call.thoughtSignature;
+          messages.push(errMsg);
+          this.logger.warn(fmt(C.yellow, `│ [bad args] ${toolName}: ${parseError.message}`));
+          continue;
+        }
+
+        const result = promise ? await promise : await this.executeTool(toolName, toolArgs);
+        logStart();
         const toolMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) };
         if (call.thoughtSignature) toolMsg.thoughtSignature = call.thoughtSignature;
         messages.push(toolMsg);
@@ -458,7 +484,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
             type: 'object',
             properties: {
               rationale: { type: 'string', description: RATIONALE_DESC },
-              query: { type: 'string', description: 'Author name only — do not include affiliation, institution, or any other context. E.g. "Devendra Singh Chaplot", not "Devendra Singh Chaplot CMU".' }
+              query: { type: 'string', description: 'Author name only — do not include affiliation, institution, or any other context. E.g. "Yann LeCun", "Fei-Fei Li", "Geoffrey Hinton" — never "Yann LeCun Meta", "Fei-Fei Li Stanford", "Geoffrey Hinton Google".' }
             },
             required: ['rationale', 'query']
           }
@@ -913,7 +939,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
   toolUpdatePrimer({ old_text, new_text }) {
     if (!this.primer.includes(old_text)) {
-      return { error: 'old_text not found in primer' };
+      return { error: 'old_text not found in primer — call view_primer to read the current text before retrying' };
     }
     this.primer = this.primer.replace(old_text, new_text);
     this.logger.log(fmt(C.bold + C.bwhite, `│ [primer ~] `) + fmt(C.white, new_text.split('\n')[0].substring(0, 80)));
