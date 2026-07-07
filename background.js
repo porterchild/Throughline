@@ -117,7 +117,7 @@ async function handleOpenRouter(data, sendResponse) {
     }
 
     const requestBody = {
-      model: 'x-ai/grok-4.1-fast',
+      model: 'deepseek/deepseek-v4-flash',
       messages: data.messages,
       temperature: 0.3
     };

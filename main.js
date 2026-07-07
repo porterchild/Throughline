@@ -69,7 +69,7 @@ const EXAMPLE_PAPERS = [
  * @param {Object} options - Optional configuration
  * @returns {Promise<Object>} - Analysis results
  */
-async function analyzePapers(papers, apiKey, options = {}) {
+async function analyzePapers(papers = [], apiKey, options = {}) {
   if (!apiKey) {
     throw new Error('OpenRouter API key is required. Set OPENROUTER_API_KEY environment variable or pass as parameter.');
   }
@@ -209,9 +209,8 @@ async function main() {
       process.exit(1);
     }
   } else {
-    papers = EXAMPLE_PAPERS;
-    console.log('No input file provided, using example papers');
-    console.log('Run with: node main.js <papers.json>');
+    papers = [];
+    console.log('No seed papers — starting from criteria alone.');
   }
 
   // Run analysis

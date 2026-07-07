@@ -26,10 +26,10 @@
 ## Run 17 — 2026-04-01 (reader fix + grok reader + thoughtSignature fix)
 **Duration**: 2774.6s | **Iterations**: ~40 | **Tracks**: 7 | **Papers**: 81
 **Score**: 6/13 — GNM ✓, ViNT ✓, NoMaD ✓, OmniVLA ✓, PoliFormer ✓, RING ✓ — **new best**
-**Model**: Agent: `google/gemini-3-flash-preview`, Reader: `x-ai/grok-4.1-fast`
+**Model**: Agent: `google/gemini-3-flash-preview`, Reader: `deepseek/deepseek-v4-flash`
 
 ### New Features Being Tested
-- **Reader model**: switched from Gemini to `x-ai/grok-4.1-fast` with reasoning
+- **Reader model**: switched from Gemini to `deepseek/deepseek-v4-flash` with reasoning
 - **Reader output schema**: reduced to `id` + `note` only (was echoing full paper data — ~17k tokens/call); expected ~90% reduction in reader output tokens
 - **thoughtSignature fix**: Gemini 3 Flash Preview requires `thoughtSignature` field echoed back on every tool response message; missing it caused 400 "Corrupted thought signature" on tool calls; now preserved on both normal and error tool response paths
 - **5xx retry delay**: increased from 3s to 15s for server errors

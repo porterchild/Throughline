@@ -27,7 +27,7 @@ The tool is LLM-based instead of code-based because of the flexibility required.
 
 ### Agent with Tools
 
-A single LLM agent (Grok 4.1 Fast via OpenRouter) drives the entire exploration. It has access to Semantic Scholar API tools:
+A single LLM agent (Deepseek v4 Flash via OpenRouter) drives the entire exploration. It has access to Semantic Scholar API tools:
 
 **Discovery**
 - `search_papers` — keyword search

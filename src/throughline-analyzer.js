@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const pathModule = require('path');
+const { AsyncLocalStorage } = require('async_hooks');
 
 // ANSI color helpers
 const C = {
@@ -32,11 +33,19 @@ const RATIONALE_DESC = 'Briefly explain your rationale for this tool call. Helps
 
 class ThroughlineAnalyzer {
   constructor(apiConfig = {}) {
-    this.logger = apiConfig.logger || {
+    this._logStorage = new AsyncLocalStorage();
+    const rawLogger = apiConfig.logger || {
       log: (...args) => console.log(...args),
       error: (...args) => console.error(...args),
       warn: (...args) => console.warn(...args)
     };
+    // Wrap logger so calls inside a reader tool execution go to that call's buffer
+    const wrap = (fn) => (...args) => {
+      const buf = this._logStorage.getStore();
+      if (buf) buf.push(() => fn(...args));
+      else fn(...args);
+    };
+    this.logger = { log: wrap(rawLogger.log), error: wrap(rawLogger.error), warn: wrap(rawLogger.warn) };
 
     this.threads = [];
     this.paperStore = new Map();
@@ -70,7 +79,7 @@ class ThroughlineAnalyzer {
     }
   }
 
-  async exploreUserInterest(seedPapers, onProgress) {
+  async exploreUserInterest(seedPapers = [], onProgress) {
     this.progressCallback = onProgress;
     return this.analyze(seedPapers);
   }
@@ -84,7 +93,8 @@ class ThroughlineAnalyzer {
     this.logger.log(fmt(C.bold + C.bcyan, '\n' + '═'.repeat(70)));
     this.logger.log(fmt(C.bold + C.bcyan, '  THROUGHLINE ANALYSIS — Agent Mode'));
     this.logger.log(fmt(C.bold + C.bcyan, '═'.repeat(70)));
-    seedPapers.forEach((p, i) => this.logger.log(fmt(C.cyan, `  Seed ${i+1}: "${p.title}" (${p.year})`)));
+    if (seedPapers.length > 0) seedPapers.forEach((p, i) => this.logger.log(fmt(C.cyan, `  Seed ${i+1}: "${p.title}" (${p.year})`)));
+    else this.logger.log(fmt(C.dim, '  No seed papers — starting from criteria alone'));
     this.logger.log(fmt(C.dim, `  SS: ${this.semanticScholarApiKey ? 'authenticated (1 RPS dedicated)' : 'unauthenticated (shared pool — expect 429s)'}`));
     this.logger.log(fmt(C.bold + C.bcyan, '═'.repeat(70)) + '\n');
 
@@ -161,16 +171,18 @@ class ThroughlineAnalyzer {
     const criteria = (this.clusteringCriteria && this.clusteringCriteria.trim())
       || 'No additional criteria provided by the user.';
 
-    const seedInfo = seedPapers.map(p =>
-      `- "${p.title}" (${p.year}) by ${(p.authors || []).map(a => a.name).join(', ')} [ID: ${p.paperId}]\n  Abstract: ${p.abstract || 'N/A'}`
-    ).join('\n');
+    const seedSection = seedPapers.length > 0
+      ? `SEED PAPER(S):\n${seedPapers.map(p =>
+          `- "${p.title}" (${p.year}) by ${(p.authors || []).map(a => a.name).join(', ')} [ID: ${p.paperId}]\n  Abstract: ${p.abstract || 'N/A'}`
+        ).join('\n')}\n\n`
+      : '';
 
+    const today = new Date().toISOString().slice(0, 10);
     const systemPrompt = `You are a research exploration agent. Your job is to explore the academic literature based on the User's interest and build research tracks that satisfy the user's research criteria. You have access to the Semantic Scholar API through tools.
 
-SEED PAPER(S):
-${seedInfo}
+Be aware that as an LLM, your training cut-off is in the past, and you must be aware of today's date in order to correctly gauge how recent or old research is. Today's date: ${today}
 
-USER'S RESEARCH CRITERIA:
+${seedSection}USER'S RESEARCH CRITERIA:
 ${criteria}
 
 HOW TO WORK:
@@ -270,8 +282,10 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
           this.logger.log(fmt(C.bgreen, `│ ▶ ${toolName}`) + fmt(C.green, `(${argSummary})`) + focusSummary);
         };
 
-        const promise = READER_TOOLS.has(toolName) ? this.executeTool(toolName, toolArgs) : null;
-        return { call, toolName, toolArgs, parseError: null, promise, logStart };
+        const isReaderTool = READER_TOOLS.has(toolName);
+        const logBuf = isReaderTool ? [] : null;
+        const promise = isReaderTool ? this._logStorage.run(logBuf, () => this.executeTool(toolName, toolArgs)) : null;
+        return { call, toolName, toolArgs, parseError: null, promise, logStart, logBuf };
       });
 
       // Wait for all reader tools to finish concurrently; measure wall-clock time for histogram
@@ -291,6 +305,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
         const result = promise ? await promise : await this.executeTool(toolName, toolArgs);
         logStart();
+        if (logBuf) logBuf.forEach(fn => fn());
         const toolMsg = { role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) };
         if (call.thoughtSignature) toolMsg.thoughtSignature = call.thoughtSignature;
         messages.push(toolMsg);
@@ -633,7 +648,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         type: 'function',
         function: {
           name: 'update_primer',
-          description: 'Replace a specific passage in the research primer with new text. Use this to correct or refine existing understanding.',
+          description: 'Replace a specific passage in the research primer with new text. Use this to correct or refine existing understanding. Do not batch this with other tool calls — if it fails you must retry, and errors get missed in batches.',
           parameters: {
             type: 'object',
             properties: {
@@ -957,7 +972,7 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
         method: 'POST',
         headers: { 'Authorization': `Bearer ${this.openRouterApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'x-ai/grok-4.1-fast',
+          model: 'deepseek/deepseek-v4-flash',
           messages: [
             { role: 'user', content: `Rate the exploration complexity of this research interest on a scale of 1–5:\n1 = narrow (one topic, one lineage, few papers expected)\n5 = broad (multiple distinct lab lineages, wide temporal scope, many interacting subfields)\n\nRespond with valid JSON only: { "rationale": "...", "number": <1-5> }\n\nResearch interest:\n${criteria}` }
           ],
@@ -1025,7 +1040,10 @@ Tool calls that return papers will show you paper IDs and author IDs. You need p
 
     const primerSection = this.primer ? `\nRESEARCH PRIMER (agent's accumulated understanding of the field — use this to help you judge relevance across terminology differences):\n${this.primer}\n` : '';
 
+    const today = new Date().toISOString().slice(0, 10);
     const readerPrompt = `You are a research paper filter. You receive raw results from a Semantic Scholar API call and must select papers that best match the main agent's focus and the user's criteria.
+
+Be aware that as an LLM, your training cut-off is in the past, and you must be aware of today's date in order to correctly gauge how recent or old research is. Today's date: ${today}
 
 USER'S RESEARCH CRITERIA:
 ${criteria}
@@ -1114,7 +1132,7 @@ Respond with valid JSON only — output only the paper id and a brief note, noth
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'x-ai/grok-4.1-fast',
+            model: 'deepseek/deepseek-v4-flash',
             messages,
             max_tokens: this.maxCompletionTokens,
             reasoning: { enabled: true },
